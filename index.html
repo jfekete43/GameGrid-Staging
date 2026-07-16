@@ -1,1 +1,2312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <script async src="https://www.googletagmanager.com/gtag/js?id=G-XXXXXXXXXX"></script>
+    <script>
+      window.dataLayer = window.dataLayer || [];
+      function gtag(){dataLayer.push(arguments);}
+      gtag('js', new Date());
 
+      gtag('config', 'G-BNBM7M3HCG');
+    </script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Grid</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Bungee&family=Press+Start+2P&display=swap');
+
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            background-color: #121213;
+            color: #ffffff;
+            margin: 0;
+            /* CHANGED: Only pad the top so the game isn't glued to the ceiling, 
+               letting the footer stretch edge-to-edge at the bottom */
+            padding: 20px 0 0 0; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100dvh; 
+            overflow-x: hidden; 
+        }
+
+        /* CRT Effects */
+        .crt-scanlines {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.25) 50%);
+            background-size: 100% 4px;
+            z-index: 9999; pointer-events: none;
+            animation: scanlines 10s linear infinite;
+        }
+        .crt-vignette {
+            position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: radial-gradient(circle, rgba(0,0,0,0) 60%, rgba(0,0,0,0.6) 100%);
+            box-shadow: inset 0 0 100px rgba(0,0,0,0.9);
+            z-index: 9998; pointer-events: none;
+        }
+        @keyframes scanlines {
+            0% { background-position: 0 0; }
+            100% { background-position: 0 400px; }
+        }
+
+        /* Centered Header Layout */
+        .header-container {
+            display: grid;
+            grid-template-columns: 1fr auto 1fr;
+            align-items: center;
+            width: 100%; max-width: 600px; margin-bottom: 15px;
+            position: relative; z-index: 10;
+        }
+        /* --- HORIZONTAL SHOP CAROUSEL --- */
+        .shop-scroll-grid {
+            display: grid;
+            grid-template-rows: auto auto; /* Forces exactly 2 rows */
+            grid-auto-flow: column; /* Forces items to flow to the right */
+            grid-auto-columns: max-content; /* Sizes the columns perfectly to your cards */
+            gap: 15px;
+            overflow-x: auto; /* Enables horizontal scrolling */
+            overflow-y: hidden;
+            padding-bottom: 15px;
+            margin-bottom: 25px;
+        }
+
+        /* Custom Retro Scrollbar */
+        .shop-scroll-grid::-webkit-scrollbar {
+            height: 8px;
+        }
+        .shop-scroll-grid::-webkit-scrollbar-track {
+            background: #111; 
+            border-radius: 4px;
+            border: 1px solid #333;
+        }
+        .shop-scroll-grid::-webkit-scrollbar-thumb {
+            background: #555; 
+            border-radius: 4px;
+        }
+        .shop-scroll-grid::-webkit-scrollbar-thumb:hover {
+            background: #e2b714; /* Lights up gold when you interact with it */
+        }
+
+        h1 { 
+            margin: 0; text-align: center;
+            font-family: 'Bungee', sans-serif; 
+            font-size: clamp(20px, 6vw, 48px); /* Adjusted minimum scale for mobile */
+            letter-spacing: 2px;
+            color: #ffffff; 
+            text-transform: uppercase;
+            white-space: nowrap; /* Prevents stacking */
+            
+            /* High-depth 3D layered arcade shadow with neon aura glow */
+            text-shadow: 
+                3px 3px 0px #e23636, 
+                6px 6px 0px #111112,
+                -1px -1px 0px #538d4e,
+                0 0 15px rgba(226, 54, 54, 0.3);
+                
+            /* Smooth arcade float animation */
+            animation: titleFloat 4s ease-in-out infinite alternate;
+            display: inline-block;
+        }
+
+        @keyframes titleFloat {
+            0% {
+                transform: translateY(0px) scale(1);
+                text-shadow: 3px 3px 0px #e23636, 6px 6px 0px #111112, -1px -1px 0px #538d4e, 0 0 15px rgba(226, 54, 54, 0.3);
+            }
+            100% {
+                transform: translateY(-6px) scale(1.02);
+                text-shadow: 4px 8px 0px #e23636, 8px 12px 0px #111112, -1px -1px 0px #538d4e, 0 0 25px rgba(226, 54, 54, 0.5);
+            }
+        }
+        
+        .header-actions { display: flex; min-width: 75px; } /* Gives columns a safe zone */
+        .header-actions.left { justify-content: flex-start; gap: 15px; }
+        .header-actions.right { justify-content: flex-end; }
+
+        .text-btn {
+            background: transparent; border: none; color: #818384;
+            font-size: clamp(12px, 3.5vw, 16px); /* Scales button gracefully */
+            font-weight: bold; cursor: pointer;
+            letter-spacing: 1px; transition: color 0.2s; padding: 0;
+            white-space: nowrap; /* Prevents "MENU" and the icon from separating */
+        }
+        .text-btn:hover { color: white; }
+
+        #arcade-score-header {
+            display: flex; width: 100%; max-width: 600px; justify-content: space-between;
+            font-family: 'Press Start 2P', monospace; font-size: 12px;
+            color: #538d4e; margin-bottom: 15px; border-bottom: 1px solid #3a3a3c; padding-bottom: 10px;
+            position: relative; z-index: 10;
+        }
+
+        .instructions {
+            background-color: #272729; border: 1px solid #3a3a3c; border-radius: 8px;
+            padding: 15px 20px; margin-bottom: 20px; width: 100%; max-width: 600px; box-sizing: border-box; color: #d7dadc; font-size: 14px;
+            position: relative; z-index: 10;
+        }
+        .instructions-header { display: flex; justify-content: space-between; align-items: center; cursor: pointer; }
+        .instructions-header p { color: white; margin: 0; font-weight: bold; font-size: 16px; }
+        .toggle-btn { background: transparent; border: none; color: #818384; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .instructions-content { margin-top: 15px; display: none; }
+        .instructions ul { margin: 0; padding-left: 0; list-style-type: none; }
+        .instructions li { margin-bottom: 8px; line-height: 1.4; }
+
+        .lives-left { margin-bottom: 20px; font-size: 22px; letter-spacing: 4px; text-align: center; position: relative; z-index: 10;}
+
+        .input-section { display: flex; gap: 10px; margin-bottom: 30px; width: 100%; max-width: 600px; box-sizing: border-box; position: relative; z-index: 30; }
+        .autocomplete-container { position: relative; flex-grow: 1; }
+        input { width: 100%; padding: 12px; font-size: 16px; background-color: #3a3a3c; color: white; border: 1px solid #565758; border-radius: 4px; box-sizing: border-box; }
+        .suggestions-list { position: absolute; top: 100%; left: 0; width: 100%; background-color: #272729; border: 1px solid #565758; border-top: none; border-radius: 0 0 4px 4px; max-height: 250px; overflow-y: auto; z-index: 40; display: none; box-shadow: 0 4px 6px rgba(0,0,0,0.5); }
+        .suggestion-item { padding: 10px 12px; cursor: pointer; border-bottom: 1px solid #3a3a3c; display: flex; flex-direction: column; text-align: left; }
+        .suggestion-item:hover, .suggestion-item.active { background-color: #3a3a3c; }
+        .suggestion-name { font-weight: bold; font-size: 15px; color: white; margin-bottom: 3px; }
+        .suggestion-meta { font-size: 12px; color: #a0a0a0; }
+
+        button.guess-btn { padding: 12px 24px; font-size: 16px; font-weight: bold; background-color: #538d4e; color: white; border: none; border-radius: 4px; cursor: pointer; }
+        button.guess-btn:hover { background-color: #43703e; }
+        button:disabled { background-color: #3a3a3c; cursor: not-allowed; color: #818384; }
+
+        .grid { display: flex; flex-direction: column; gap: 10px; width: 100%; max-width: 600px; position: relative; z-index: 10;}
+        .row { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 10px; }
+        .header-row { font-weight: bold; text-align: center; border-bottom: 2px solid #3a3a3c; padding-bottom: 10px; margin-bottom: 10px; }
+        .box { background-color: #3a3a3c; padding: 15px 10px; display: flex; justify-content: center; align-items: center; text-align: center; border-radius: 4px; font-weight: bold; font-size: 14px; transition: background-color 0.3s; }
+        .box.match { background-color: #538d4e; } 
+        .box.wrong { background-color: #3a3a3c; } 
+        
+        .modal {
+            display: none; 
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(0, 0, 0, 0.85);
+            justify-content: center; align-items: center;
+            z-index: 10000;
+        }
+        .modal-content {
+            background-color: #121213; border: 1px solid #3a3a3c; border-radius: 8px;
+            padding: 20px 30px 30px; width: 90%; max-width: 400px;
+            text-align: center; position: relative; max-height: 90vh;
+            overflow-y: auto; box-shadow: 0 4px 20px rgba(0,0,0,0.8);
+        }
+        .close-btn { position: absolute; top: 10px; right: 15px; background: none; border: none; color: white; font-size: 24px; cursor: pointer; }
+        .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 15px 10px; margin-top: 20px; margin-bottom: 30px; }
+        .stat-item { display: flex; flex-direction: column; align-items: center; }
+        .stat-num { font-size: 28px; font-weight: bold; }
+        .stat-label { font-size: 11px; line-height: 1.2; text-transform: uppercase; }
+
+        .guess-distribution { width: 100%; text-align: left; margin-bottom: 20px; }
+        .guess-distribution h3 { margin: 0 0 15px 0; font-size: 16px; text-align: center; text-transform: uppercase; }
+        .dist-row { display: flex; align-items: center; margin-bottom: 5px; font-size: 14px; font-weight: bold; }
+        .dist-label { width: 15px; text-align: right; margin-right: 10px; }
+        .dist-bar-container { flex-grow: 1; background-color: transparent; }
+        .dist-bar { background-color: #3a3a3c; color: white; padding: 2px 8px; border-radius: 2px; text-align: right; min-width: 10px; box-sizing: border-box; transition: width 0.3s ease; }
+        .dist-bar.highlight { background-color: #538d4e; }
+
+        /* Leaderboard Tabs */
+        .tabs-container { display: flex; justify-content: center; gap: 8px; margin-top: 15px; border-bottom: 1px solid #3a3a3c; padding-bottom: 5px; flex-wrap: wrap;}
+        .tab-btn { background: none; border: none; color: #818384; font-size: 12px; cursor: pointer; padding: 5px; font-family: 'Press Start 2P', monospace; transition: 0.2s;}
+        .tab-btn:hover { color: white; }
+        .tab-btn.active { color: #e2b714; border-bottom: 2px solid #e2b714; }
+
+        .overlay-screen { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background-color: rgba(0, 0, 0, 0.95); justify-content: center; align-items: center; flex-direction: column; z-index: 10000; }
+        .overlay-text { font-family: 'Press Start 2P', monospace; font-size: 8vw; text-align: center; margin-bottom: 25px; line-height: 1.2; }
+        .text-win { color: #538d4e; } .text-lose { color: #e23636; }
+        @media (min-width: 600px) { .overlay-text { font-size: 50px; } }
+        .overlay-subtext { font-size: 20px; color: white; margin-bottom: 20px; text-align: center; }
+        .overlay-points { font-family: 'Press Start 2P', monospace; font-size: 14px; color: #e2b714; margin-bottom: 40px; text-align: center; line-height: 1.5; }
+        
+        .game-over-answer { color: #538d4e; font-weight: bold; font-size: 28px; margin-top: 5px; }
+
+        .button-group { display: flex; gap: 15px; flex-wrap: wrap; justify-content: center; }
+        .arcade-btn { padding: 15px 30px; font-size: 18px; font-weight: bold; text-transform: uppercase; background-color: transparent; color: white; border: 2px solid white; border-radius: 4px; cursor: pointer; transition: all 0.2s; display: flex; align-items: center; gap: 10px; }
+        .arcade-btn:hover { background-color: white; color: black; }
+        .share-btn { background-color: #538d4e; border-color: #538d4e; }
+        .share-btn:hover { background-color: #43703e; border-color: #43703e; color: white; }
+        .submit-btn { border-color: #e2b714; color: #e2b714; }
+        .submit-btn:hover:not(:disabled) { 
+            background-color: #e2b714 !important; 
+            color: #000000 !important; 
+        }
+        /* --- GAME FEEL & JUICE --- */
+        @keyframes shake {
+            0% { transform: translate(1px, 1px) rotate(0deg); }
+            10% { transform: translate(-1px, -2px) rotate(-1deg); }
+            20% { transform: translate(-3px, 0px) rotate(1deg); }
+            30% { transform: translate(3px, 2px) rotate(0deg); }
+            40% { transform: translate(1px, -1px) rotate(1deg); }
+            50% { transform: translate(-1px, 2px) rotate(-1deg); }
+            60% { transform: translate(-3px, 1px) rotate(0deg); }
+            70% { transform: translate(3px, 1px) rotate(-1deg); }
+            80% { transform: translate(-1px, -1px) rotate(1deg); }
+            90% { transform: translate(1px, 2px) rotate(0deg); }
+            100% { transform: translate(1px, -2px) rotate(-1deg); }
+        }
+        .shake { 
+            animation: shake 0.4s cubic-bezier(.36,.07,.19,.97) both; 
+        }
+        .text-pulse {
+            animation: pulse-color 0.5s infinite alternate;
+        }
+        @keyframes pulse-color {
+            from { color: #ffffff; text-shadow: none; }
+            to { color: #538d4e; text-shadow: 0 0 10px #538d4e; }
+        }
+        .social-links-container {
+    display: flex;
+    justify-content: center;
+    gap: 15px;
+    margin-top: 20px;
+}
+
+.social-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 45px;
+    height: 45px;
+    border-radius: 8px;
+    background: #1a2a3a; /* Match your legacy grid blue */
+    color: #ffffff;
+    border: 2px solid #122e36;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.social-btn:hover {
+    transform: translateY(-3px);
+    border-color: #e2b714; /* Accent glow */
+    color: #e2b714;
+    box-shadow: 0 0 10px rgba(226, 183, 20, 0.3);
+}
+    </style>
+
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.8.1/firebase-firestore-compat.js"></script>
+
+</head>
+<body>
+
+    <div class="crt-scanlines"></div>
+    <div class="crt-vignette"></div>
+
+   <div class="header-container">
+        <div class="header-actions left">
+            </div>
+        
+        <h1>Game Grid</h1>
+        
+        <div class="header-actions right">
+            <button class="text-btn" onclick="openMainMenu()" style="color: #e2b714; border: 1px solid #e2b714; padding: 5px 10px;">MENU &#9776;</button>
+        </div>
+    </div>
+        
+    <div id="arcade-score-header">
+        <div>SCORE: <span id="current-score">0</span></div>
+        <div>HIGH: <span id="high-score">0</span></div>
+    </div>
+
+    <div class="instructions">
+        <div class="instructions-header" onclick="toggleInstructions()">
+            <p>How To Play</p>
+            <button class="toggle-btn" id="instructions-btn">[ + ]</button>
+        </div>
+        <div class="instructions-content" id="instructions-content">
+            <ul>
+                <li style="color: #e2b714; font-size: 15px;">🎯 <strong>Goal: Guess the hidden retro or modern video game!</strong></li>
+                <li>🟩 <strong>Green box</strong> means an exact match.</li>
+                <li>⬛ <strong>Gray box</strong> means incorrect.</li>
+                <li>⬆️ ⬇️ <strong>Arrows</strong> indicate if the target game's release year is newer or older.</li>
+                <li>🧠 <strong>Smart Filter:</strong> Ineligible games will be automatically removed from the suggestion box as you play.</li>
+                <li>🏆 <strong>Arcade Scoring:</strong> Points decrease each guess (100, 50, 25, 10, 5, 1).</li>
+                <li>⚠️ <strong>Press Your Luck:</strong> You have 2 Continues per run. Failing a round burns a Continue. If you fail with 0 Continues left, you lose all your un-cashed points!</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- HUD Cleanup: Hearts and Continues combined into one row -->
+    <div style="display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 8px 20px; margin-bottom: 20px; width: 100%; max-width: 600px; position: relative; z-index: 10;">
+        <div class="lives-left" id="lives-display" style="margin-bottom: 0; font-size: clamp(16px, 5vw, 22px); letter-spacing: 2px;"></div>
+        <div style="color: #e2b714; font-family: 'Press Start 2P', monospace; font-size: clamp(10px, 3vw, 12px); display: flex; align-items: center;">
+            CONTINUES: <span id="continues-left" style="margin-left: 10px;">2</span>
+        </div>
+    </div>
+
+    <div class="input-section">
+        <div class="autocomplete-container">
+            <input type="text" id="guess-input" placeholder="Type a game name..." autocomplete="off">
+            <div id="suggestions" class="suggestions-list"></div>
+        </div>
+        <button id="guess-button" class="guess-btn" onclick="makeGuess()">Guess</button>
+    </div>
+
+    <div class="grid" id="guess-grid">
+        <div class="row header-row">
+            <div>Game</div><div>Console</div><div>Genre</div><div>Year</div>
+        </div>
+    </div>
+
+    <div id="leaderboard-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleLeaderboard('none')">&times;</button>
+            <h2>HALL OF FAME</h2>
+            
+            <!-- NEW: Master Toggle Buttons -->
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 15px;">
+                <button class="arcade-btn" id="btn-mode-single" onclick="setLeaderboardMode('single')" style="font-size: 10px; padding: 10px; width: 50%; border-color: #e2b714; color: #e2b714;">SINGLE RUN</button>
+                <button class="arcade-btn" id="btn-mode-career" onclick="setLeaderboardMode('career')" style="font-size: 10px; padding: 10px; width: 50%; border-color: #555; color: #555;">CAREER BANK</button>
+            </div>
+
+            <!-- Existing Tabs (Now used for Career as well) -->
+            <div class="tabs-container" id="leaderboard-sub-tabs">
+                <button class="tab-btn active" id="tab-all" onclick="loadLeaderboard('all')">ALL-TIME</button>
+                <button class="tab-btn" id="tab-month" onclick="loadLeaderboard('month')">MONTH</button>
+                <button class="tab-btn" id="tab-week" onclick="loadLeaderboard('week')">WEEK</button>
+                <button class="tab-btn" id="tab-day" onclick="loadLeaderboard('day')">DAY</button>
+            </div>
+
+            <div id="leaderboard-loading" style="color: #e2b714; font-size: 14px; margin-top: 15px;">Connecting to database...</div>
+            <div id="leaderboard-list" style="text-align: left; margin-top: 20px; font-family: 'Press Start 2P', monospace; font-size: 12px; line-height: 2;">
+                <!-- Rows inject here -->
+            </div>
+            
+            <button id="share-btn" onclick="shareResults()" style="display: none; width: 100%; background-color: #e2b714; color: black; padding: 15px; margin-top: 25px; border: none; font-family: 'Press Start 2P', monospace; font-weight: bold; cursor: pointer; border-radius: 4px;">
+                SHARE SCORE 📋
+            </button>
+        </div>
+    </div>
+
+    <div id="stats-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" onclick="toggleModal('none')">&times;</button>
+            <h2>Statistics</h2>
+            <div class="stats-grid" style="grid-template-columns: repeat(2, 1fr); gap: 20px 10px;">
+                <div class="stat-item"><div class="stat-num" id="stat-played">0</div><div class="stat-label">Games Played</div></div>
+                <div class="stat-item"><div class="stat-num" id="stat-winpct">0</div><div class="stat-label">Win %</div></div>
+                <div class="stat-item"><div class="stat-num" id="stat-streak">0</div><div class="stat-label">Current Streak</div></div>
+                <div class="stat-item"><div class="stat-num" id="stat-maxstreak">0</div><div class="stat-label">Max Streak</div></div>
+                
+                <div class="stat-item" style="color: #538d4e;"><div class="stat-num" id="stat-career-bank">0</div><div class="stat-label">Total Cashed Out</div></div>
+                <div class="stat-item" style="color: #e2b714;"><div class="stat-num" id="stat-avg-cashout">0</div><div class="stat-label">Avg Cashed Out</div></div>
+            </div>
+            <div class="guess-distribution">
+                <h3>Guess Distribution</h3>
+                <div id="distribution-container"></div>
+            </div>
+        </div>
+    </div>
+
+    <div id="victory-screen" class="overlay-screen">
+        <div class="overlay-text text-win">VICTORY</div>
+        <div class="overlay-subtext" id="victory-subtext">You got it in X guesses!</div>
+        <div class="overlay-points" id="victory-points" style="display:none;">+100 POINTS</div>
+        
+        <div id="victory-status" style="font-family: 'Press Start 2P', monospace; font-size: 12px; color: white; margin-bottom: 30px;">
+            BANK: <span style="color:#538d4e;">0</span> | LIVES: <span style="color:#e2b714;">2</span>
+        </div>
+
+        <div class="button-group">
+            <button class="arcade-btn share-btn" id="btn-share-win" onclick="shareResults()" style="display: none;">Share 📋</button>
+            <button class="arcade-btn" id="btn-retry-win" onclick="resetGame(true, false)">Next Round</button>
+            <button class="arcade-btn" id="btn-save-win" onclick="openAccountModal('victory-screen')" style="border-color: #4285F4; color: #4285F4;">Save Profile</button>
+            <button class="arcade-btn submit-btn" id="btn-submit-win" onclick="submitToLeaderboard()">Cash Out</button>
+        </div>
+    </div>
+
+    <div id="game-over-screen" class="overlay-screen">
+        <div class="overlay-text text-lose" id="game-over-title">GAME OVER</div>
+        <div class="overlay-subtext">The correct game was:<div class="game-over-answer" id="game-over-answer">Game Name</div></div>
+        <div class="overlay-points" id="lose-points" style="display:none; color: #e2b714;">X CONTINUES LEFT</div>
+        
+        <div id="game-over-status" style="font-family: 'Press Start 2P', monospace; font-size: 12px; color: white; margin-bottom: 30px; display: none;">
+            BANK: <span style="color:#538d4e;">0</span> | LIVES: <span style="color:#e2b714;">2</span>
+        </div>
+
+        <div class="button-group">
+            <button class="arcade-btn share-btn" id="btn-share-lose" onclick="shareResults()" style="display: none;">Share 📋</button>
+            <button class="arcade-btn" id="btn-retry-lose" onclick="resetGame(true, false)">Continue</button>
+            <button class="arcade-btn" id="btn-save-lose" onclick="openAccountModal('game-over-screen')" style="border-color: #4285F4; color: #4285F4;">Save Profile</button>
+            <button class="arcade-btn submit-btn" id="btn-submit-lose" onclick="submitToLeaderboard()">Cash Out</button>
+        </div>
+    </div>
+
+    <!-- ACCOUNT REGISTRATION MODAL -->
+    <div id="account-modal" class="overlay-screen" style="display: none; z-index: 9999;">
+        <div style="background-color: #1a1a1a; padding: 30px; border: 2px solid #e2b714; border-radius: 10px; max-width: 400px; width: 90%; text-align: center;">
+            <div class="overlay-text" style="font-size: 24px; color: #e2b714; margin-bottom: 10px;">SAVE YOUR STATS</div>
+            <div class="overlay-subtext" style="margin-bottom: 25px;">Create a profile to secure your Lifetime Bank and unlock the Global Leaderboard.</div>
+            
+            <!-- Email & Password Form -->
+            <input type="email" id="signup-email" placeholder="EMAIL ADDRESS" style="width: 100%; padding: 10px; margin-bottom: 15px; background: black; color: white; border: 1px solid #555; font-family: 'Press Start 2P', monospace; font-size: 10px; box-sizing: border-box;">
+            
+            <input type="password" id="signup-password" placeholder="PASSWORD" style="width: 100%; padding: 10px; margin-bottom: 20px; background: black; color: white; border: 1px solid #555; font-family: 'Press Start 2P', monospace; font-size: 10px; box-sizing: border-box;">
+            
+            <button class="arcade-btn" id="btn-email-signup" style="width: 100%; margin-bottom: 20px; border-color: #538d4e; color: #538d4e;">LINK WITH EMAIL</button>
+            
+            <div style="color: #888; font-family: 'Press Start 2P', monospace; font-size: 10px; margin-bottom: 20px;">- OR -</div>
+            
+            <!-- Google Button -->
+            <button class="arcade-btn" id="btn-google-signup" style="width: 100%; margin-bottom: 25px; border-color: #4285F4; color: #4285F4;">LINK WITH GOOGLE</button>
+            
+            <div style="color: #888; font-family: 'Press Start 2P', monospace; font-size: 10px; margin-bottom: 20px;">- ALREADY HAVE AN ACCOUNT? -</div>
+            
+            <!-- Existing Account Login -->
+            <button class="arcade-btn" id="btn-google-login" style="width: 100%; margin-bottom: 25px; border-color: #e2b714; color: #e2b714;">LOG IN TO EXISTING PROFILE</button>
+            
+            <!-- Cancel / Close -->
+            <button class="arcade-btn" onclick="closeAccountModal()" style="border-color: #555; color: #555; font-size: 10px;">KEEP PLAYING AS GUEST</button>
+        </div>
+    </div>
+
+    <!-- MAIN NAVIGATION MENU -->
+    <div id="main-menu" class="overlay-screen" style="display: none; z-index: 99999;">
+        <div style="background-color: #1a1a1a; padding: 40px; border: 2px solid #e2b714; border-radius: 10px; min-width: 250px; text-align: center; max-height: 85vh; overflow-y: auto;">
+            <div class="overlay-text" style="font-size: 24px; color: #e2b714; margin-bottom: 30px;">PAUSED</div>
+            
+            <div style="display: flex; flex-direction: column; gap: 15px;">
+                <button class="arcade-btn" onclick="closeMainMenu(); resetGame(true, true)">NEW RUN</button>
+                <button class="arcade-btn" onclick="closeMainMenu(); toggleModal('flex')">STATS</button>
+                <button class="arcade-btn" onclick="closeMainMenu(); toggleLeaderboard('flex')">LEADERBOARD</button>
+                <button class="arcade-btn" id="nav-shop-btn" onclick="openShopModal()" style="border-color: #e2b714; color: #e2b714;">ITEM SHOP</button>
+                <button class="arcade-btn" onclick="openChallengesModal()" style="border-color: #538d4e; color: #538d4e;">CHALLENGES</button>
+                
+                <div style="height: 2px; background-color: #333; margin: 10px 0;"></div>
+                
+                <button class="arcade-btn" id="nav-profile-btn" onclick="handleProfileClick()" style="border-color: #4285F4; color: #4285F4;">PROFILE / LOG IN</button>
+                <button class="arcade-btn" id="nav-logout-btn" onclick="performLogout()" style="border-color: #e23636; color: #e23636; display: none;">LOG OUT</button>
+                
+                <button class="arcade-btn" onclick="closeMainMenu()" style="border-color: #555; color: #555; margin-top: 15px;">BACK TO GAME</button>
+
+                <div class="social-links-container">
+                    <a href="https://discord.gg/qa8V7yQeqA" target="_blank" rel="noopener noreferrer" class="social-btn discord-btn" title="Join our Discord">
+                        <svg viewBox="0 0 127.14 96.36" width="20" height="20" fill="currentColor">
+                            <path d="M107.7,8.07A105.15,105.15,0,0,0,77.26,0a77.19,77.19,0,0,0-3.3,6.83A96.67,96.67,0,0,0,53.22,6.83,77.19,77.19,0,0,0,49.88,0,105.15,105.15,0,0,0,19.44,8.07C3.66,31.58-1.86,54.65,1,77.53a105.73,105.73,0,0,0,32,16.29,80.68,80.68,0,0,0,6.73-11,68.2,68.2,0,0,1-10.6-5.1c.9-.66,1.8-1.34,2.66-2a75.58,75.58,0,0,0,71.18,0c.87.69,1.76,1.37,2.66,2a68.12,68.12,0,0,1-10.6,5.1,79.52,79.52,0,0,0,6.73,11,105.81,105.81,0,0,0,32-16.29C129.62,48.12,123.13,25.33,107.7,8.07ZM42.45,65.69C36.18,65.69,31,60,31,53S36.18,40.36,42.45,40.36,53.83,46,53.83,53,48.72,65.69,42.45,65.69Zm42.24,0C78.41,65.69,73.24,60,73.24,53S78.41,40.36,84.69,40.36,96.07,46,96.07,53,91,65.69,84.69,65.69Z"/>
+                        </svg>
+                    </a>
+                
+                    <a href="https://x.com/PlayGameGrid" target="_blank" rel="noopener noreferrer" class="social-btn x-btn" title="Follow us on X">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor">
+                            <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                        </svg>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- PLAYER LOCKER MODAL -->
+    <div id="locker-modal" class="overlay-screen" style="display: none; z-index: 99999;">
+        <div style="background-color: #1a1a1a; padding: 30px; border: 2px solid #538d4e; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto;">
+            <div class="overlay-text" style="font-size: 24px; color: #538d4e; margin-bottom: 15px;">MY LOCKER</div>
+            
+            <!-- LIVE PREVIEW CARD -->
+            <div id="locker-preview-card" style="background-color: transparent; border-radius: 6px; padding: 15px; margin-bottom: 25px; border: 1px solid #3a3a3c; display: flex; align-items: center; gap: 15px; text-align: left;">
+                <div style="font-size: 32px;" id="locker-preview-avatar">🕹️</div>
+                <div style="display: flex; flex-direction: column; line-height: 1.4;">
+                    <div style="color: white; font-size: 16px; font-weight: bold;" id="locker-preview-name">PLAYER</div>
+                    <div style="color: #bbb; font-size: 8px; text-transform: uppercase; margin-top: 3px;" id="locker-preview-title">Insert Coin</div>
+                </div>
+            </div>
+
+            <!-- CUSTOMIZATION DROPDOWNS -->
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #888; text-align: left; margin-bottom: 5px;">TITLE:</div>
+            <select id="locker-title-select" onchange="updateEquippedItem('equippedTitle', this.value)" style="background-color: #111; color: #e2b714; font-family: 'Press Start 2P', monospace; font-size: 10px; border: 1px solid #e2b714; border-radius: 4px; padding: 8px; margin-bottom: 15px; width: 100%; cursor: pointer; outline: none;"></select>
+
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #888; text-align: left; margin-bottom: 5px;">AVATAR:</div>
+            <select id="locker-avatar-select" onchange="updateEquippedItem('equippedAvatar', this.value)" style="background-color: #111; color: #538d4e; font-family: 'Press Start 2P', monospace; font-size: 10px; border: 1px solid #538d4e; border-radius: 4px; padding: 8px; margin-bottom: 15px; width: 100%; cursor: pointer; outline: none;"></select>
+
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #888; text-align: left; margin-bottom: 5px;">BANNER:</div>
+            <select id="locker-banner-select" onchange="updateEquippedItem('equippedBanner', this.value)" style="background-color: #111; color: #4285F4; font-family: 'Press Start 2P', monospace; font-size: 10px; border: 1px solid #4285F4; border-radius: 4px; padding: 8px; margin-bottom: 25px; width: 100%; cursor: pointer; outline: none;"></select>
+            
+            <!-- Dual Economy Display -->
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 10px; color: white; margin-bottom: 10px; display: flex; justify-content: space-between; border-top: 1px solid #333; padding-top: 15px;">
+                <div>RANK: <span id="locker-bank" style="color: #538d4e;">0</span> PTS</div>
+                <div>COINS: <span id="locker-coins" style="color: #e2b714;">0</span> [C]</div>
+            </div>
+
+            <!-- Rank Progress Bar -->
+            <div style="width: 100%; background-color: #333; height: 10px; border-radius: 5px; margin-bottom: 25px; overflow: hidden; border: 1px solid #555;">
+                <div id="rank-progress-bar" style="width: 0%; background-color: #e2b714; height: 100%; transition: width 0.5s ease-in-out;"></div>
+            </div>
+            <div id="rank-next-text" style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #888; margin-bottom: 25px;">...</div>
+
+            <button class="arcade-btn" onclick="document.getElementById('locker-modal').style.display='none'" style="border-color: #555; color: #555; width: 100%; margin-bottom: 15px;">CLOSE LOCKER</button>
+            <button class="arcade-btn" id="btn-logout" style="border-color: #e23636; color: #e23636; font-size: 10px; width: 100%;">LOG OUT</button>
+        </div>
+    </div>
+
+    <!-- THE ITEM SHOP MODAL -->
+    <div id="shop-modal" class="overlay-screen" style="display: none; z-index: 99999;">
+        <div style="background-color: #1a1a1a; padding: 30px; border: 2px solid #e2b714; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto;">
+            <div class="overlay-text" style="font-size: 24px; color: #e2b714; margin-bottom: 5px;">ITEM SHOP</div>
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 10px; color: #888; margin-bottom: 25px;">SPEND YOUR CASHOUT COINS</div>
+            
+            <div style="font-family: 'Press Start 2P', monospace; font-size: 14px; color: white; margin-bottom: 25px; background: black; padding: 10px; border: 1px solid #333; border-radius: 4px;">
+                WALLET: <span id="shop-wallet-display" style="color: #e2b714;">0</span> [C]
+            </div>
+            
+            <!-- Avatars Section -->
+            <div style="text-align: left; font-family: 'Press Start 2P', monospace; font-size: 12px; color: #538d4e; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px;">AVATARS</div>
+            <div id="shop-avatars-container" class="shop-scroll-grid">
+                <!-- Avatars injected here -->
+            </div>
+
+            <!-- Banners Section -->
+            <div style="text-align: left; font-family: 'Press Start 2P', monospace; font-size: 12px; color: #4285F4; margin-bottom: 15px; border-bottom: 1px solid #333; padding-bottom: 5px;">BANNERS</div>
+            <div id="shop-banners-container" class="shop-scroll-grid">
+                <!-- Banners injected here -->
+            </div>
+
+            <button class="arcade-btn" onclick="closeShopModal()" style="border-color: #555; color: #555; width: 100%;">EXIT SHOP</button>
+        </div>
+    </div>
+
+    <!-- CHALLENGES MODAL -->
+    <div id="challenges-modal" class="overlay-screen" style="display: none; z-index: 99999;">
+        <div style="background-color: #1a1a1a; padding: 30px; border: 2px solid #538d4e; border-radius: 10px; width: 90%; max-width: 400px; text-align: center; max-height: 90vh; overflow-y: auto;">
+            <div class="overlay-text" style="font-size: 24px; color: #538d4e; margin-bottom: 15px;">CHALLENGES</div>
+            
+            <!-- Dual Tabs -->
+            <div style="display: flex; justify-content: center; gap: 10px; margin-bottom: 25px;">
+                <button class="arcade-btn" id="btn-chal-daily" onclick="setChallengeMode('daily')" style="font-size: 10px; padding: 10px; width: 50%; border-color: #e2b714; color: #e2b714;">DAILY</button>
+                <button class="arcade-btn" id="btn-chal-career" onclick="setChallengeMode('career')" style="font-size: 10px; padding: 10px; width: 50%; border-color: #555; color: #555;">CAREER</button>
+            </div>
+            
+            <div id="challenges-container" style="display: flex; flex-direction: column; gap: 15px; margin-bottom: 25px;">
+                <!-- Challenges inject here -->
+            </div>
+
+            <button class="arcade-btn" onclick="document.getElementById('challenges-modal').style.display='none'" style="border-color: #555; color: #555; width: 100%;">CLOSE</button>
+        </div>
+    </div>
+    <script>
+        // --- FIREBASE INITIALIZATION ---
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlHufV0t0VthvCMvQBI1iX6vuicO6HKH8",
+            authDomain: "the-game-grid.firebaseapp.com",
+            projectId: "the-game-grid",
+            storageBucket: "the-game-grid.firebasestorage.app",
+            messagingSenderId: "980286023905",
+            appId: "1:980286023905:web:f0317fd000ad2aa75eefa0"
+        };
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth(); // Initialize Auth
+        let currentUID = null; // We will store their secret ID here
+
+        // --- AUTHENTICATION LISTENER ---
+        auth.onAuthStateChanged((user) => {
+            if (user) {
+                // The browser remembers them! 
+                currentUID = user.uid;
+                console.log("Welcome back. Logged in as:", user.isAnonymous ? "Guest Profile" : user.email);
+                
+                // NEW: If they are logged in, pull their cross-device stats!
+                if (!user.isAnonymous) pullStatsFromCloud(); 
+                
+            } else {
+                // Brand new visitor, generate a Ghost ID
+                auth.signInAnonymously().catch(err => console.error("Silent login failed:", err));
+            }
+        });
+        // --- GOOGLE ACCOUNT LINKING ---
+        document.getElementById('btn-google-signup').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            const user = firebase.auth().currentUser;
+
+            if (user) {
+                // This command tells Firebase to merge the Ghost ID with the Google Account
+                user.linkWithPopup(provider)
+                    .then((result) => {
+                        // Success!
+                        console.log("Account successfully linked:", result.user.email);
+                        
+                        // -- NEW: Trigger the Locker Builder --
+                        syncPlayerProfile(result.user);
+                        
+                        // Close the modal using our new function
+                        closeAccountModal();
+                        
+                        // Hide the "Save Profile" buttons since they are now registered
+                        const saveButtons = document.querySelectorAll("button[onclick=\"openAccountModal('victory-screen')\"], button[onclick=\"openAccountModal('game-over-screen')\"]");
+                        saveButtons.forEach(btn => btn.style.display = 'none');
+                    })
+                    .catch((error) => {
+                        console.error("Error linking account:", error);
+                        
+                        // Handle the specific error where they already created an account
+                        if (error.code === 'auth/credential-already-in-use') {
+                            alert("This Google account is already linked to another Game Grid profile. Try a different email or log in directly.");
+                        } else {
+                            alert("Something went wrong. Please try again.");
+                        }
+                    });
+            } else {
+                console.error("No anonymous user found to link.");
+            }
+        });
+
+        // --- GOOGLE EXISTING ACCOUNT LOGIN ---
+        document.getElementById('btn-google-login').addEventListener('click', () => {
+            const provider = new firebase.auth.GoogleAuthProvider();
+            
+            // This command throws away the anonymous Ghost ID and pulls down the official profile
+            firebase.auth().signInWithPopup(provider)
+                .then((result) => {
+                    // Success! Update their local ID to match their cloud profile
+                    currentUID = result.user.uid;
+                    console.log("Successfully logged in:", result.user.email);
+                    
+                    // -- NEW: Pull down their Locker --
+                    syncPlayerProfile(result.user);
+                    
+                    // Close the modal
+                    closeAccountModal();
+                })
+                .catch((error) => {
+                    console.error("Login failed:", error.message);
+                    alert("Login failed. Please try again.");
+                });
+        });
+        // -------------------------------
+
+        document.getElementById('btn-email-signup').addEventListener('click', () => {
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    
+    if (!email || !password) {
+        alert("Please enter both email and password.");
+        return;
+    }
+
+    // Example logic to link anonymous account to email/password
+    const credential = firebase.auth.EmailAuthProvider.credential(email, password);
+    const user = firebase.auth().currentUser;
+
+    if (user) {
+        user.linkWithCredential(credential)
+            .then((usercred) => {
+                console.log("Account successfully linked with Email:", usercred.user.email);
+                syncPlayerProfile(usercred.user);
+                closeAccountModal();
+            }).catch((error) => {
+                console.error("Error linking account:", error);
+                alert(error.message);
+            });
+    }
+});
+
+        // --- MODAL SCREEN SWAP LOGIC ---
+        function openAccountModal(fromScreen) {
+            // Hide the active game end screen
+            document.getElementById('victory-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            
+            // Show the Account Modal and force it to the absolute front
+            const modal = document.getElementById('account-modal');
+            modal.style.display = 'flex';
+            modal.style.position = 'fixed'; 
+            modal.style.zIndex = '99999';
+            
+            // Tag the modal with the screen we just came from so it knows where to go back to
+            modal.dataset.returnScreen = fromScreen;
+        }
+
+        function closeAccountModal() {
+            // Hide the Account Modal
+            const modal = document.getElementById('account-modal');
+            modal.style.display = 'none';
+            
+            // Bring the correct end screen back up
+            if (modal.dataset.returnScreen) {
+                document.getElementById(modal.dataset.returnScreen).style.display = 'flex';
+            }
+        }
+        // --- PLAYER LOCKER (FIRESTORE) LOGIC ---
+        function syncPlayerProfile(user) {
+            const userRef = db.collection("users").doc(user.uid);
+
+            userRef.get().then((doc) => {
+                if (doc.exists) {
+                    const data = doc.data();
+                    console.log("Locker found for:", data.arcadeTag);
+                    alert(`Welcome back to the Grid, ${data.arcadeTag}!`);
+                } else {
+                    let tag = prompt("Profile Secured! Enter your official Arcade Tag (10 characters max):", "PLAYER");
+                    if (!tag) tag = "PLAYER"; 
+                    const cleanTag = tag.substring(0, 10).toUpperCase();
+
+                    userRef.set({
+                        arcadeTag: cleanTag,
+                        lifetimePoints: 0, 
+                        spendableCoins: 0, 
+                        equippedTitle: "Insert Coin",
+                        unlockedTitles: ["Insert Coin"],
+                        equippedAvatar: "🕹️", 
+                        equippedBanner: "#1a1a1a", 
+                        joinDate: firebase.firestore.FieldValue.serverTimestamp()
+                    }).then(() => {
+                        console.log("New Player Locker created!");
+                        alert(`Locker established! You are officially recognized as ${cleanTag}.`);
+                    }).catch((error) => console.error("Error building locker:", error));
+                }
+            }).catch((error) => console.error("Error accessing database:", error));
+        }
+        // --- MAIN MENU NAVIGATION ---
+        function openMainMenu() {
+            document.getElementById('main-menu').style.display = 'flex';
+            
+            // DYNAMIC BUTTON UPDATE: Check if they are logged in
+            const user = firebase.auth().currentUser;
+            const profileBtn = document.getElementById('nav-profile-btn');
+            const logoutBtn = document.getElementById('nav-logout-btn');
+            
+            if (user && !user.isAnonymous) {
+                profileBtn.innerText = "MY LOCKER";
+                profileBtn.style.borderColor = "#538d4e";
+                profileBtn.style.color = "#538d4e";
+                logoutBtn.style.display = 'flex'; // Show logout
+            } else {
+                profileBtn.innerText = "PROFILE / LOG IN";
+                profileBtn.style.borderColor = "#4285F4";
+                profileBtn.style.color = "#4285F4";
+                logoutBtn.style.display = 'none'; // Hide logout
+            }
+        }
+        
+        function performLogout() {
+            firebase.auth().signOut().then(() => {
+                document.getElementById('locker-modal').style.display = 'none';
+                alert("You have been securely logged out. Returning to Guest Mode.");
+                location.reload(); 
+            });
+        }
+        // --- SHOP MODAL LOGIC ---
+        function openShopModal() {
+            closeMainMenu();
+            const user = firebase.auth().currentUser;
+            
+            if (user && !user.isAnonymous) {
+                document.getElementById('shop-modal').style.display = 'flex';
+                document.getElementById('shop-avatars-container').innerHTML = '<span style="color:#e2b714; font-size:10px;">Loading Inventory...</span>';
+                document.getElementById('shop-banners-container').innerHTML = '';
+                
+                // Fetch live profile to get exact coin count and owned items
+                db.collection("users").doc(user.uid).get().then((doc) => {
+                    if (doc.exists) renderShopUI(doc.data());
+                });
+            } else {
+                alert("You need to save your profile to access the Item Shop!");
+                openAccountModal('main-menu');
+            }
+        }
+        // --- CHALLENGES ENGINE ---
+        let currentChallengeMode = 'daily';
+
+        function setChallengeMode(mode) {
+            currentChallengeMode = mode;
+            document.getElementById('btn-chal-daily').style.borderColor = mode === 'daily' ? '#e2b714' : '#555';
+            document.getElementById('btn-chal-daily').style.color = mode === 'daily' ? '#e2b714' : '#555';
+            document.getElementById('btn-chal-career').style.borderColor = mode === 'career' ? '#e2b714' : '#555';
+            document.getElementById('btn-chal-career').style.color = mode === 'career' ? '#e2b714' : '#555';
+            renderChallenges();
+        }
+
+        function openChallengesModal() {
+            closeMainMenu();
+            const user = firebase.auth().currentUser;
+            if (!user || user.isAnonymous) {
+                alert("You need to save your profile to access Challenges!");
+                openAccountModal('main-menu');
+                return;
+            }
+            document.getElementById('challenges-modal').style.display = 'flex';
+            setChallengeMode('daily'); // Default to daily when opening
+        }
+
+        function getProgressValue(type) {
+            // Direct lookups (Safe checks)
+            if (localStats[type] !== undefined) return localStats[type];
+            if (localStats?.challenges?.[type] !== undefined) return localStats.challenges[type];
+            
+            // Dynamic genre lookups using Optional Chaining (?.) to prevent crashes
+            if (type.startsWith('careerGenre_')) {
+                const genre = type.split('_')[1];
+                return localStats?.careerGenres?.[genre] || 0;
+            }
+            if (type.startsWith('dailyGenre_')) {
+                const genre = type.split('_')[1];
+                return localStats?.challenges?.dailyGenres?.[genre] || 0;
+            }
+            return 0;
+        }
+
+        function renderChallenges() {
+            const container = document.getElementById('challenges-container');
+            container.innerHTML = '';
+            const list = currentChallengeMode === 'daily' ? localStats.challenges.activeDaily : CAREER_CHALLENGES;
+
+            list.forEach(chal => {
+                if (!chal) return; // Failsafe against corrupted local saves
+                const isClaimed = localStats.challenges.claimed.includes(chal.id);
+                const currentProg = getProgressValue(chal.type);
+                const isComplete = currentProg >= chal.target;
+                
+                const percent = Math.min((currentProg / chal.target) * 100, 100);
+                
+                // Visual formatting for the reward label
+                let rewardDisplay = `+${chal.reward} [C]`;
+                if (chal.rewardType === 'avatar') rewardDisplay = `AVATAR: ${chal.reward}`;
+                if (chal.rewardType === 'banner') rewardDisplay = `NEW BANNER`;
+
+                const box = document.createElement('div');
+                box.style.border = `1px solid ${isClaimed ? '#538d4e' : '#333'}`;
+                box.style.padding = '15px';
+                box.style.borderRadius = '6px';
+                box.style.backgroundColor = isClaimed ? '#1a2b1a' : 'transparent';
+                box.style.textAlign = 'left';
+
+                box.innerHTML = `
+                    <div style="font-family: 'Press Start 2P', monospace; font-size: 10px; color: ${isClaimed ? '#538d4e' : 'white'}; margin-bottom: 10px; display: flex; justify-content: space-between;">
+                        <span>${chal.desc}</span>
+                        <span style="color: #e2b714;">${isClaimed ? 'CLAIMED' : rewardDisplay}</span>
+                    </div>
+                    ${!isClaimed ? `
+                        <div style="width: 100%; background-color: #333; height: 6px; border-radius: 3px; margin-bottom: 10px; overflow: hidden;">
+                            <div style="width: ${percent}%; background-color: ${isComplete ? '#538d4e' : '#e2b714'}; height: 100%;"></div>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                            <span style="font-family: 'Press Start 2P', monospace; font-size: 8px; color: #888;">${currentProg} / ${chal.target}</span>
+                            <button class="arcade-btn" 
+                                onclick="claimChallenge('${chal.id}')" 
+                                ${!isComplete ? 'disabled' : ''}
+                                style="font-size: 8px; padding: 5px 10px; margin: 0; border-color: ${isComplete ? '#538d4e' : '#333'}; color: ${isComplete ? '#538d4e' : '#555'};">
+                                CLAIM
+                            </button>
+                        </div>
+                    ` : ''}
+                `;
+                container.appendChild(box);
+            });
+        }
+
+        function claimChallenge(id) {
+            const chal = [...localStats.challenges.activeDaily, ...CAREER_CHALLENGES].find(c => c.id === id);
+            if (!chal || localStats.challenges.claimed.includes(id)) return;
+
+            localStats.challenges.claimed.push(id);
+            
+            // Grab the user once at the top so we can use it for all 3 reward types
+            const user = firebase.auth().currentUser;
+
+            // Distribute the correct reward type
+            if (chal.rewardType === 'avatar') {
+                if (!localStats.unlockedAvatars.includes(chal.reward)) {
+                    localStats.unlockedAvatars.push(chal.reward);
+                }
+                // NEW: Push the avatar to Firebase so the Locker sees it!
+                if (user && !user.isAnonymous) {
+                    db.collection("users").doc(user.uid).update({
+                        ownedAvatars: firebase.firestore.FieldValue.arrayUnion(chal.reward)
+                    }).catch(err => console.error(err));
+                }
+                alert(`Challenge Complete! You unlocked a new Avatar! Check your locker.`);
+                
+            } else if (chal.rewardType === 'banner') {
+                if (!localStats.unlockedBanners.includes(chal.reward)) {
+                    localStats.unlockedBanners.push(chal.reward);
+                }
+                // NEW: Push the banner to Firebase so the Locker sees it!
+                if (user && !user.isAnonymous) {
+                    db.collection("users").doc(user.uid).update({
+                        ownedBanners: firebase.firestore.FieldValue.arrayUnion(chal.reward)
+                    }).catch(err => console.error(err));
+                }
+                alert(`Challenge Complete! You unlocked a new Banner! Check your locker.`);
+                
+            } else {
+                // Default Coin Reward
+                if (user && !user.isAnonymous) {
+                    db.collection("users").doc(user.uid).update({
+                        spendableCoins: firebase.firestore.FieldValue.increment(chal.reward)
+                    }).catch(err => console.error(err));
+                }
+                alert(`Challenge Complete! ${chal.reward} coins added to your bank!`);
+            }
+
+            // Save and refresh the screen instantly
+            localStorage.setItem('gamedleStats', JSON.stringify(localStats));
+            syncStatsToCloud();
+            renderChallenges();
+        }
+        function closeShopModal() {
+            document.getElementById('shop-modal').style.display = 'none';
+        }
+
+        // --- RENDER STOREFRONT ---
+        function renderShopUI(data) {
+            document.getElementById('shop-wallet-display').innerText = data.spendableCoins || 0;
+            
+            // Set fallbacks for players who haven't bought anything yet
+            const ownedAvatars = data.ownedAvatars || [];
+            const ownedBanners = data.ownedBanners || [];
+            const eqAvatar = data.equippedAvatar || "🕹️";
+            const eqBanner = data.equippedBanner || "#1a1a1a";
+
+            const avatarsDiv = document.getElementById('shop-avatars-container');
+            const bannersDiv = document.getElementById('shop-banners-container');
+            
+            avatarsDiv.innerHTML = '';
+            bannersDiv.innerHTML = '';
+
+            // 1. Paint the Avatars
+            for (const [id, item] of Object.entries(SHOP_INVENTORY.avatars)) {
+                if (item.unbuyable) continue;
+                const isOwned = ownedAvatars.includes(id);
+                
+                // NEW: Determine if it's an image or an emoji
+                const avatarValue = item.src || item.icon;
+                const isEquipped = eqAvatar === avatarValue;
+                const displayVisual = item.src ? `<img src="${item.src}" style="width: 32px; height: 32px; image-rendering: pixelated;">` : item.icon;
+                
+                let btnLogic = "";
+                if (isEquipped) {
+                    btnLogic = `<button disabled style="background:#538d4e; color:white; border:none; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px;">EQUIPPED</button>`;
+                } else if (isOwned) {
+                    btnLogic = `<button onclick="processShopAction('${id}', 'avatars')" style="background:transparent; color:#e2b714; border:1px solid #e2b714; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px; cursor:pointer;">EQUIP</button>`;
+                } else {
+                    btnLogic = `<button onclick="processShopAction('${id}', 'avatars')" style="background:#e2b714; color:black; border:none; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px; cursor:pointer; font-weight:bold;">${item.price} [C]</button>`;
+                }
+
+                avatarsDiv.innerHTML += `
+                    <div style="background: #272729; border: 2px solid ${isEquipped ? '#538d4e' : '#3a3a3c'}; border-radius: 8px; padding: 10px; width: 100px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                        <div style="font-size: 32px; margin-bottom: 5px; display: flex; justify-content: center; align-items: center; height: 32px;">${displayVisual}</div>
+                        <div style="font-size: 8px; color: white; margin-bottom: 15px; flex-grow: 1; line-height:1.4;">${item.name}</div>
+                        ${btnLogic}
+                    </div>
+                `;
+            }
+
+            // 2. Paint the Banners
+            for (const [id, item] of Object.entries(SHOP_INVENTORY.banners)) {
+                if (item.unbuyable) continue;
+                const isOwned = ownedBanners.includes(id);
+                
+                const bannerValue = item.src || item.color;
+                const isEquipped = eqBanner === bannerValue;
+                
+                // Render image background with a dark wash overlay if src exists
+                const previewStyle = item.src 
+                    ? `background-image: linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${item.src}'); background-size: cover; background-position: center;` 
+                    : `background-color: ${item.color};`;
+                
+                let btnLogic = "";
+                if (isEquipped) {
+                    btnLogic = `<button disabled style="background:#4285F4; color:white; border:none; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px;">EQUIPPED</button>`;
+                } else if (isOwned) {
+                    btnLogic = `<button onclick="processShopAction('${id}', 'banners')" style="background:transparent; color:#4285F4; border:1px solid #4285F4; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px; cursor:pointer;">EQUIP</button>`;
+                } else {
+                    btnLogic = `<button onclick="processShopAction('${id}', 'banners')" style="background:#4285F4; color:white; border:none; padding:8px 5px; width:100%; font-family: 'Press Start 2P', monospace; font-size:8px; cursor:pointer; font-weight:bold;">${item.price} [C]</button>`;
+                }
+
+                bannersDiv.innerHTML += `
+                    <div style="background: #272729; border: 2px solid ${isEquipped ? '#4285F4' : '#3a3a3c'}; border-radius: 8px; padding: 10px; width: 100px; text-align: center; display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 100%; height: 32px; border: 2px solid #111; border-radius: 4px; margin-bottom: 8px; ${previewStyle}"></div>
+                        <div style="font-size: 8px; color: white; margin-bottom: 15px; flex-grow: 1; line-height:1.4;">${item.name}</div>
+                        ${btnLogic}
+                    </div>
+                `;
+            }
+        }
+
+        // --- TRANSACTION ENGINE ---
+        function processShopAction(itemId, category) {
+            const user = firebase.auth().currentUser;
+            if (!user || user.isAnonymous) return;
+
+            const itemDef = SHOP_INVENTORY[category][itemId];
+            if (!itemDef) return;
+
+            const userRef = db.collection("users").doc(user.uid);
+            
+            userRef.get().then(doc => {
+                if(!doc.exists) return;
+                const data = doc.data();
+                const coins = data.spendableCoins || 0;
+                const owned = data[category === 'avatars' ? 'ownedAvatars' : 'ownedBanners'] || [];
+                const equippedField = category === 'avatars' ? 'equippedAvatar' : 'equippedBanner';
+                const itemValue = category === 'avatars' ? (itemDef.src || itemDef.icon) : (itemDef.src || itemDef.color);
+
+                if (owned.includes(itemId)) {
+                    // ACTION: EQUIP OWNED ITEM
+                    userRef.update({ [equippedField]: itemValue }).then(() => openShopModal());
+                } else {
+                    // ACTION: BUY NEW ITEM
+                    if (coins >= itemDef.price) {
+                        userRef.update({
+                            spendableCoins: firebase.firestore.FieldValue.increment(-itemDef.price),
+                            [category === 'avatars' ? 'ownedAvatars' : 'ownedBanners']: firebase.firestore.FieldValue.arrayUnion(itemId),
+                            [equippedField]: itemValue // Auto-equip on purchase!
+                        }).then(() => {
+                            playSound('coin'); // Cha-ching!
+                            openShopModal(); // Instantly refresh the shop UI
+                        });
+                    } else {
+                        // JUICE: Flash their wallet red if they are broke
+                        const wallet = document.getElementById('shop-wallet-display');
+                        wallet.style.color = '#e23636'; 
+                        wallet.classList.remove('shake');
+                        void wallet.offsetWidth; 
+                        wallet.classList.add('shake');
+                        setTimeout(() => wallet.style.color = '#e2b714', 600);
+                    }
+                }
+            });
+        }
+
+        function closeMainMenu() {
+            document.getElementById('main-menu').style.display = 'none';
+        }
+
+        // --- PRESTIGE RANKING SYSTEM ---
+        const PRESTIGE_RANKS = [
+            { threshold: 0, title: "Insert Coin" },
+            { threshold: 500, title: "8-Bit Novice" },
+            { threshold: 1500, title: "Arcade Rat" },
+            { threshold: 3000, title: "16-Bit Brawler" },
+            { threshold: 5000, title: "Console Cowboy" },
+            { threshold: 10000, title: "Grid Master" }
+        ];
+        // --- SHOP INVENTORY ---
+        const SHOP_INVENTORY = {
+            avatars: {
+                // Legacy Emoji Items
+                "AVATAR_GHOST": { name: "Ghost", icon: "👻", price: 50 },
+                "AVATAR_FIRE": { name: "Fire", icon: "🔥", price: 100 },
+                "AVATAR_ALIEN": { name: "Alien", icon: "👽", price: 150 },
+                "AVATAR_ROBOT": { name: "Mecha", icon: "🤖", price: 300 },
+                "AVATAR_TORNADO": { name: "Tornado", icon: "🌪", price: 500 },
+                "AVATAR_SKULL": { name: "Game Over", icon: "💀", price: 500 },
+                "AVATAR_BOXER": { name: "Boxer", icon: "🥊", price: 500 },
+                "AVATAR_WIZARD": { name: "The Wizard", icon: "🧙‍♂️", price: 750 },
+                "AVATAR_SKATEBOARD": { name: "Skateboard", icon: "🛹", price: 750 },
+                "AVATAR_SNAKE": { name: "Snake", icon: "🐍", price: 750 },
+                "AVATAR_DRAGON": { name: "Dragon", icon: "🐲", price: 800 },
+                "AVATAR_PIRATE": { name: "Pirate", icon: "🏴‍☠️", price: 800 },
+                "AVATAR_CROWN": { name: "High Roller", icon: "👑", price: 1000 },
+                "AVATAR_CYBERNINJA": { name: "Cyber Ninja", icon: "🐱‍👤", price: 1000 },
+                "AVATAR_TSUNAMI": { name: "Tsunami", icon: "🌊", price: 1000 },
+                "AVATAR_HACKER": { name: "Hacker", icon: "🐱‍💻", price: 1500 },
+                "AVATAR_LIBERTY": { name: "Liberty", icon: "🗽", price: 2000 }
+            },
+            // Keep your banners object exactly the same down here...
+            banners: {
+                // Legacy Flat Colors
+                "BANNER_BLUE": { name: "Grid Blue", color: "#1a2a3a", icon: "🟦", price: 100 },
+                "BANNER_RED": { name: "Arcade Red", color: "#3a1a1a", icon: "🟥", price: 100 },
+                "BANNER_GREEN": { name: "Matrix Green", color: "#152e18", icon: "🟩", price: 100 },
+                "BANNER_PURPLE": { name: "Synthwave Purple", color: "#221236", icon: "🟪", price: 100 },
+                "BANNER_CYAN": { name: "Arcade Cyan", color: "#122e36", icon: "🔷", price: 150 },
+                "BANNER_ORANGE": { name: "Sunset Orange", color: "#361e12", icon: "🔸", price: 150 },
+                "BANNER_PINK": { name: "Cyber Pink", color: "#361226", icon: "🎀", price: 150 },
+                "BANNER_GOLD": { name: "Gold Rush", color: "#2e251a", icon: "🟨", price: 200 },
+                
+                // NEW CUSTOM IMAGE BANNERS
+                "BANNER_SPACE": { name: "Space", src: "assets/banner-space.jpg", icon: "🚀", price: 1000 },
+                "BANNER_FIGHT": { name: "Fight", src: "assets/banner-fight.jpg", icon: "🥊", price: 1000 },
+                "BANNER_RPG": { name: "RPG", src: "assets/banner-RPG.jpg", icon: "🛡️", price: 1000 },
+                "BANNER_RACER": { name: "Racer", src: "assets/banner-racer.jpg", icon: "🏎️", price: 1000 },
+                "BANNER_BASEBALL": { name: "Baseball", src: "assets/banner-Baseball.jpg", icon: "⚾", price: 1000 },
+                "BANNER_PLATFORM": { name: "Platformer", src: "assets/banner-platformer.jpg", icon: "🍄", price: 1000 },
+                "BANNER_STADIUM": { name: "Stadium", src: "assets/banner-stadium.jpg", icon: "🏟️", price: 1500 },
+                "BANNER_CITY": { name: "City", src: "assets/banner-City.jpg", icon: "🏙️", price: 1500 },
+                "BANNER_GRID": { name: "Neon Grid", src: "assets/banner-grid.jpg", icon: "🌐", price: 1500 },
+                "BANNER_SUNSET": { name: "Sunset", src: "assets/banner-Sunset.jpg", icon: "🌇", price: 2000 }
+            }
+        };
+
+        function getPrestigeData(points) {
+            let currentRank = PRESTIGE_RANKS[0];
+            let nextRank = null;
+
+            for (let i = 0; i < PRESTIGE_RANKS.length; i++) {
+                if (points >= PRESTIGE_RANKS[i].threshold) {
+                    currentRank = PRESTIGE_RANKS[i];
+                    // Grab the next rank in the array (will be undefined if they are max rank)
+                    nextRank = PRESTIGE_RANKS[i + 1] || null; 
+                }
+            }
+            return { currentRank, nextRank };
+        }
+        // --- SAVE LOCKER PREFERENCES ---
+        function updateEquippedItem(field, value) {
+            const user = firebase.auth().currentUser;
+            if (user && !user.isAnonymous) {
+                db.collection("users").doc(user.uid).update({
+                    [field]: value
+                }).then(() => {
+                    // Instantly update the Live Preview Card!
+                    if (field === 'equippedTitle') document.getElementById('locker-preview-title').innerText = value;
+                    if (field === 'equippedAvatar') {
+    const isImage = value.includes('assets/');
+    document.getElementById('locker-preview-avatar').innerHTML = isImage ? `<img src="${value}" style="width:32px; height:32px; vertical-align:middle;">` : value;
+}
+                    if (field === 'equippedBanner') {
+                        const previewCard = document.getElementById('locker-preview-card');
+                        if (value.includes('assets/')) {
+                            previewCard.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${value}')`;
+                            previewCard.style.backgroundSize = 'cover';
+                            previewCard.style.backgroundPosition = 'center';
+                        } else {
+                            previewCard.style.backgroundImage = 'none';
+                            previewCard.style.backgroundColor = value;
+                        }
+                        previewCard.style.border = value !== "transparent" ? "1px solid #444" : "1px solid #3a3a3c";
+                    }
+                }).catch(err => console.error("Error updating locker:", err));
+            }
+        }
+        function handleProfileClick() {
+            closeMainMenu();
+            const user = firebase.auth().currentUser;
+            
+            if (user && user.isAnonymous) {
+                const modal = document.getElementById('account-modal');
+                modal.style.display = 'flex';
+                modal.style.position = 'fixed';
+                modal.style.zIndex = '99999';
+            } else if (user && !user.isAnonymous) {
+                db.collection("users").doc(user.uid).get().then((doc) => {
+                    if (doc.exists) {
+                        const data = doc.data();
+                        const points = data.lifetimePoints || 0;
+                        const coins = data.spendableCoins || 0;
+                        const eqTitle = data.equippedTitle || "Insert Coin";
+                        const eqAvatar = data.equippedAvatar || "🕹️";
+                        const eqBanner = data.equippedBanner || "transparent";
+                        
+                        // 1. UPDATE LIVE PREVIEW CARD
+                        document.getElementById('locker-preview-name').innerText = data.arcadeTag;
+                        document.getElementById('locker-preview-title').innerText = eqTitle;
+                        
+                        const isImg = eqAvatar.includes('assets/');
+                        document.getElementById('locker-preview-avatar').innerHTML = isImg ? `<img src="${eqAvatar}" style="width:32px; height:32px; vertical-align:middle;">` : eqAvatar;
+                        
+                        const previewCard = document.getElementById('locker-preview-card');
+                        
+                        // NEW: Checks if the banner is an image file or a flat hex color
+                        if (eqBanner.includes('assets/')) {
+                            previewCard.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${eqBanner}')`;
+                            previewCard.style.backgroundSize = 'cover';
+                            previewCard.style.backgroundPosition = 'center';
+                            previewCard.style.backgroundColor = 'transparent'; 
+                        } else {
+                            previewCard.style.backgroundImage = 'none';
+                            previewCard.style.backgroundColor = eqBanner;
+                        }
+                        previewCard.style.border = eqBanner !== "transparent" ? "1px solid #444" : "1px solid #3a3a3c";
+
+                        // 2. BACKFILL ALL EARNED TITLES
+                        let earnedTitles = [];
+                        PRESTIGE_RANKS.forEach(rank => {
+                            if (points >= rank.threshold) earnedTitles.push(rank.title);
+                        });
+                        if (earnedTitles.length === 0) earnedTitles = ["Insert Coin"];
+
+                        const titleSelect = document.getElementById('locker-title-select');
+                        titleSelect.innerHTML = ''; 
+                        earnedTitles.forEach(title => {
+                            const opt = document.createElement('option');
+                            opt.value = title; opt.innerText = title;
+                            titleSelect.appendChild(opt);
+                        });
+                        titleSelect.value = eqTitle;
+
+                        // 3. POPULATE AVATARS (Default + Shop Purchases)
+                        const ownedAvatars = data.ownedAvatars || [];
+                        const avatarSelect = document.getElementById('locker-avatar-select');
+                        avatarSelect.innerHTML = '<option value="🕹️">🕹️ Default Player</option>';
+                        
+                        ownedAvatars.forEach(id => {
+                            if (SHOP_INVENTORY.avatars[id]) {
+                                const item = SHOP_INVENTORY.avatars[id];
+                                const opt = document.createElement('option');
+                                
+                                // NEW: Grab the correct value, and set a fallback emoji for the text list
+                                const itemValue = item.src || item.icon;
+                                const listEmoji = item.src ? "🖼️" : item.icon; 
+                                
+                                opt.value = itemValue; 
+                                opt.innerText = `${listEmoji} ${item.name}`;
+                                avatarSelect.appendChild(opt);
+                            }
+                        });
+                        avatarSelect.value = eqAvatar;
+
+                        // 4. POPULATE BANNERS (Default + Shop Purchases)
+                        const ownedBanners = data.ownedBanners || [];
+                        const bannerSelect = document.getElementById('locker-banner-select');
+                        bannerSelect.innerHTML = '<option value="transparent">⬛ Default Grid</option>';
+                        
+                        ownedBanners.forEach(id => {
+                            if (SHOP_INVENTORY.banners[id]) {
+                                const item = SHOP_INVENTORY.banners[id];
+                                const opt = document.createElement('option');
+                                const itemValue = item.src || item.color;
+                                
+                                // NEW: Dynamically grab the item's custom emoji icon property
+                                const listEmoji = item.icon || "🎨";
+                                
+                                opt.value = itemValue; 
+                                opt.innerText = `${listEmoji} ${item.name}`;
+                                bannerSelect.appendChild(opt);
+                            }
+                        });
+                        bannerSelect.value = eqBanner;
+
+                        // 5. RENDER ECONOMY & PROGRESS BAR
+                        document.getElementById('locker-bank').innerText = points;
+                        document.getElementById('locker-coins').innerText = coins; 
+
+                        const prestige = getPrestigeData(points);
+                        if (prestige.nextRank) {
+                            const pointsNeeded = prestige.nextRank.threshold - points;
+                            const levelRange = prestige.nextRank.threshold - prestige.currentRank.threshold;
+                            const pointsIntoLevel = points - prestige.currentRank.threshold;
+                            const progressPercent = (pointsIntoLevel / levelRange) * 100;
+
+                            document.getElementById('rank-progress-bar').style.width = `${progressPercent}%`;
+                            document.getElementById('rank-next-text').innerText = `${pointsNeeded} PTS TO NEXT RANK`;
+                        } else {
+                            document.getElementById('rank-progress-bar').style.width = `100%`;
+                            document.getElementById('rank-next-text').innerText = `MAXIMUM RANK ACHIEVED`;
+                        }
+
+                        document.getElementById('locker-modal').style.display = 'flex';
+                    }
+                }).catch(err => console.error("Error loading locker details:", err));
+            }
+        }
+        // --- LOG OUT BUTTON LOGIC ---
+        function performLogout() {
+            firebase.auth().signOut().then(() => {
+                document.getElementById('locker-modal').style.display = 'none';
+                alert("You have been securely logged out. Returning to Guest Mode.");
+                location.reload(); 
+            });
+        }
+        
+        document.getElementById('btn-logout').addEventListener('click', performLogout);
+
+        // Web Audio API
+        let audioCtx = null;
+        function initAudio() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
+        function playSound(type) {
+            initAudio();
+            if (!audioCtx) return;
+            const osc = audioCtx.createOscillator(); const gainNode = audioCtx.createGain();
+            osc.connect(gainNode); gainNode.connect(audioCtx.destination); const now = audioCtx.currentTime;
+
+            if (type === 'guess') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(150, now); osc.frequency.exponentialRampToValueAtTime(40, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'coin') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(987.77, now); osc.frequency.setValueAtTime(1318.51, now + 0.1);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.3);
+                osc.start(now); osc.stop(now + 0.3);
+            } else if (type === 'win') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(261.63, now); osc.frequency.setValueAtTime(329.63, now + 0.1); osc.frequency.setValueAtTime(392.00, now + 0.2); osc.frequency.setValueAtTime(523.25, now + 0.3);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.6);
+                osc.start(now); osc.stop(now + 0.6);
+            } else if (type === 'lose') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now); osc.frequency.exponentialRampToValueAtTime(100, now + 0.5);
+                gainNode.gain.setValueAtTime(0.1, now); gainNode.gain.linearRampToValueAtTime(0, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            }
+        }
+        // --- SCORE ANIMATOR ENGINE ---
+        function animateValue(objId, start, end, duration) {
+            const obj = document.getElementById(objId);
+            if (!obj) return;
+            
+            let startTimestamp = null;
+            const step = (timestamp) => {
+                if (!startTimestamp) startTimestamp = timestamp;
+                const progress = Math.min((timestamp - startTimestamp) / duration, 1);
+                
+                // Calculate the current number
+                const currentVal = Math.floor(progress * (end - start) + start);
+                obj.innerText = currentVal;
+                
+                // Play a tiny ticking sound every few frames if you want extreme juice
+                if (progress < 1) {
+                    window.requestAnimationFrame(step);
+                } else {
+                    obj.innerText = end; // Ensure it ends exactly on the target
+                }
+            };
+            window.requestAnimationFrame(step);
+        }
+
+        // Database & State
+        let database = [];
+        let targetGame = null;
+        let gameOver = false;
+        const MAX_GUESSES = 6; 
+        let currentGuesses = 0;
+        let emojiHistory = []; 
+        let pastGuesses = new Set();
+
+        const POINTS_DISTRIBUTION = [100, 50, 25, 10, 5, 1];
+        
+        function loadStats() {
+            const saved = localStorage.getItem('gamedleStats');
+            const todayStr = new Date().toDateString();
+
+            if (saved) {
+                let parsed = JSON.parse(saved);
+                // Ensure legacy saves get the new stats safely
+                if (parsed.runsCompleted === undefined) parsed.runsCompleted = 0;
+                if (parsed.lifetimeBank === undefined) parsed.lifetimeBank = 0;
+                if (parsed.careerFirstTry === undefined) parsed.careerFirstTry = 0;
+                if (!parsed.careerGenres) parsed.careerGenres = { RPG: 0, Shooter: 0, Sports: 0, Action: 0, Platformer: 0, Racing: 0, Puzzle: 0, Horror: 0, Arcade: 0, Strategy: 0 };
+                
+                // Ensure cosmetic arrays exist
+                if (!parsed.unlockedAvatars) parsed.unlockedAvatars = ["🕹️"];
+                if (!parsed.unlockedBanners) parsed.unlockedBanners = ["transparent"];
+
+                // DAILY CHALLENGE RANDOMIZER CHECK
+                if (!parsed.challenges || parsed.challenges.date !== todayStr || !parsed.challenges.activeDaily) {
+                    const t50 = DAILY_CHALLENGES_POOL.tier50[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier50.length)];
+                    const t100 = DAILY_CHALLENGES_POOL.tier100[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier100.length)];
+                    const t200 = DAILY_CHALLENGES_POOL.tier200[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier200.length)];
+
+                    parsed.challenges = {
+                        date: todayStr,
+                        activeDaily: [t50, t100, t200],
+                        dailyCashouts: 0, dailyWins: 0, dailyMaxStreak: 0,
+                        dailyGenres: { RPG: 0, Shooter: 0, Sports: 0, Action: 0, Platformer: 0, Racing: 0, Puzzle: 0, Horror: 0, Arcade: 0, Strategy: 0 },
+                        claimed: parsed.challenges?.claimed || [] // Keeps track of what they already cashed in
+                    };
+                }
+                return parsed;
+            }
+
+            // Fresh save file for a brand new player
+            const t50 = DAILY_CHALLENGES_POOL.tier50[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier50.length)];
+            const t100 = DAILY_CHALLENGES_POOL.tier100[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier100.length)];
+            const t200 = DAILY_CHALLENGES_POOL.tier200[Math.floor(Math.random() * DAILY_CHALLENGES_POOL.tier200.length)];
+
+            return {
+                played: 0, wins: 0, currentStreak: 0, maxStreak: 0,
+                guessDistribution: [0, 0, 0, 0, 0, 0],
+                arcadeScore: 0, highScore: 0, continues: 2,
+                runsCompleted: 0, lifetimeBank: 0, careerFirstTry: 0,
+                careerGenres: { RPG: 0, Shooter: 0, Sports: 0, Action: 0, Platformer: 0, Racing: 0, Puzzle: 0, Horror: 0, Arcade: 0, Strategy: 0 },
+                unlockedAvatars: ["🕹️"], unlockedBanners: ["transparent"],
+                challenges: {
+                    date: todayStr,
+                    activeDaily: [t50, t100, t200],
+                    dailyCashouts: 0, dailyWins: 0, dailyMaxStreak: 0,
+                    dailyGenres: { RPG: 0, Shooter: 0, Sports: 0, Action: 0, Platformer: 0, Racing: 0, Puzzle: 0, Horror: 0, Arcade: 0, Strategy: 0 },
+                    claimed: []
+                }
+            };
+        }
+        // --- CLOUD SYNC ENGINE ---
+        function syncStatsToCloud() {
+            const user = firebase.auth().currentUser;
+            if (user && !user.isAnonymous) {
+                db.collection("users").doc(user.uid).set({
+                    stats: localStats
+                }, { merge: true }).catch(err => console.error("Cloud sync save failed:", err));
+            }
+        }
+
+        function pullStatsFromCloud() {
+            const user = firebase.auth().currentUser;
+            if (!user || user.isAnonymous) return;
+
+            db.collection("users").doc(user.uid).get().then(doc => {
+                if (doc.exists && doc.data().stats) {
+                    let cloudStats = doc.data().stats;
+                    
+                    // 1. Safely merge challenges to prevent missing data crashes
+                    if (!cloudStats.challenges || !cloudStats.challenges.activeDaily) {
+                        cloudStats.challenges = localStats.challenges;
+                    }
+
+                    // 2. Only overwrite local if the Cloud has more (or equal) games played.
+                    if (cloudStats.played >= localStats.played) {
+                        localStats = cloudStats;
+                        localStorage.setItem('gamedleStats', JSON.stringify(localStats));
+                        
+                        // 3. Update the active HUD
+                        document.getElementById('current-score').innerText = localStats.arcadeScore;
+                        document.getElementById('continues-left').innerText = localStats.continues;
+                        document.getElementById('high-score').innerText = localStats.highScore;
+                    } else if (localStats.played > cloudStats.played) {
+                        syncStatsToCloud();
+                    }
+                }
+            });
+        }
+
+        // 👇 MOVED DATABASES UP HERE 👇
+
+        // --- MASTER CHALLENGE DATABASES ---
+        const DAILY_CHALLENGES_POOL = {
+            tier50: [
+                { id: "D_CASH_3", desc: "Cash Out 3 times", type: "dailyCashouts", target: 3, reward: 50, rewardType: "coins" },
+                { id: "D_STREAK_5", desc: "Reach a 5 win streak", type: "dailyMaxStreak", target: 5, reward: 50, rewardType: "coins" },
+                { id: "D_WIN_10", desc: "Win 10 games", type: "dailyWins", target: 10, reward: 50, rewardType: "coins" }
+            ],
+            tier100: [
+                { id: "D_RPG_1", desc: "Guess an RPG correctly", type: "dailyGenre_RPG", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_SHT_1", desc: "Guess a Shooter correctly", type: "dailyGenre_Shooter", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_SPR_1", desc: "Guess a Sports game correctly", type: "dailyGenre_Sports", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_ACT_1", desc: "Guess an Action game correctly", type: "dailyGenre_Action", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_PLT_1", desc: "Guess a Platformer correctly", type: "dailyGenre_Platformer", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_RAC_1", desc: "Guess a Racing game correctly", type: "dailyGenre_Racing", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_PUZ_1", desc: "Guess a Puzzle game correctly", type: "dailyGenre_Puzzle", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_HOR_1", desc: "Guess a Horror game correctly", type: "dailyGenre_Horror", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_ARC_1", desc: "Guess an Arcade game correctly", type: "dailyGenre_Arcade", target: 1, reward: 100, rewardType: "coins" },
+                { id: "D_STR_1", desc: "Guess a Strategy game correctly", type: "dailyGenre_Strategy", target: 1, reward: 100, rewardType: "coins" }
+            ],
+            tier200: [
+                { id: "D_CASH_10", desc: "Cash Out 10 times", type: "dailyCashouts", target: 10, reward: 200, rewardType: "coins" },
+                { id: "D_WIN_25", desc: "Win 25 games", type: "dailyWins", target: 25, reward: 200, rewardType: "coins" }
+            ]
+        };
+
+        const CAREER_CHALLENGES = [
+            // Milestones
+            { id: "C_PLAY_100", desc: "Play 100 total games", type: "played", target: 100, reward: 250, rewardType: "coins" },
+            { id: "C_PLAY_500", desc: "Play 500 total games", type: "played", target: 500, reward: 500, rewardType: "coins" },
+            { id: "C_PLAY_1K", desc: "Play 1,000 total games", type: "played", target: 1000, reward: "👑", rewardType: "avatar" },
+            { id: "C_WIN_250", desc: "Win 250 games", type: "wins", target: 250, reward: 250, rewardType: "coins" },
+            { id: "C_WIN_500", desc: "Win 500 games", type: "wins", target: 500, reward: 500, rewardType: "coins" },
+            { id: "C_WIN_1K", desc: "Win 1,000 games", type: "wins", target: 1000, reward: "#e2b714", rewardType: "banner" },
+            { id: "C_STRK_10", desc: "Reach a 10 win streak", type: "maxStreak", target: 10, reward: 250, rewardType: "coins" },
+            { id: "C_STRK_25", desc: "Reach a 25 win streak", type: "maxStreak", target: 25, reward: 500, rewardType: "coins" },
+            { id: "C_STRK_50", desc: "Reach a 50 win streak", type: "maxStreak", target: 50, reward: "🔥", rewardType: "avatar" },
+            { id: "C_BANK_1K", desc: "Cash Out 1,000 coins", type: "lifetimeBank", target: 1000, reward: 250, rewardType: "coins" },
+            { id: "C_BANK_5K", desc: "Cash Out 5,000 coins", type: "lifetimeBank", target: 5000, reward: 500, rewardType: "coins" },
+            { id: "C_BANK_10K", desc: "Cash Out 10,000 coins", type: "lifetimeBank", target: 10000, reward: "💎", rewardType: "avatar" },
+            { id: "C_FIRST_1", desc: "Win on the first try", type: "careerFirstTry", target: 1, reward: "🎯", rewardType: "avatar" }
+        ];
+
+        const genresList = ["RPG", "Shooter", "Action", "Platformer", "Sports", "Racing", "Puzzle", "Horror", "Arcade", "Strategy"];
+        genresList.forEach(g => {
+            CAREER_CHALLENGES.push({ id: `C_${g}_10`, desc: `Guess 10 ${g} games`, type: `careerGenre_${g}`, target: 10, reward: 250, rewardType: "coins" });
+            CAREER_CHALLENGES.push({ id: `C_${g}_50`, desc: `Guess 50 ${g} games`, type: `careerGenre_${g}`, target: 50, reward: 500, rewardType: "coins" });
+            CAREER_CHALLENGES.push({ id: `C_${g}_100`, desc: `Guess 100 ${g} games`, type: `careerGenre_${g}`, target: 100, reward: "#538d4e", rewardType: "banner" });
+            CAREER_CHALLENGES.push({ id: `C_${g}_250`, desc: `Guess 250 ${g} games`, type: `careerGenre_${g}`, target: 250, reward: "🏆", rewardType: "avatar" });
+        });
+
+        // 👇 LOAD STATS NOW SUCCEEDS BECAUSE DATABASES ARE READY 👇
+        let localStats = loadStats();
+        let knownConsole = null, knownGenre = null, eliminatedConsoles = new Set(), eliminatedGenres = new Set(), minYear = -Infinity, maxYear = Infinity;
+
+        fetch('database.json')
+            .then(res => res.json())
+            .then(data => { 
+                database = data.slice(0, 525); 
+                resetGame(false, false); 
+            })
+            .catch(err => console.error(err));
+
+        function resetGame(playAudio, isNewRun = false) {
+            if (database.length === 0) return; 
+            
+            if (isNewRun && localStats.arcadeScore > 0 && !gameOver) {
+                if (!confirm("Are you sure you want to abandon this run? You will lose your un-cashed points!")) {
+                    return;
+                }
+                // Failsafe included
+                localStats.runsCompleted = (localStats.runsCompleted || 0) + 1; 
+            }
+
+            if (playAudio) playSound('coin');
+
+            if (isNewRun) {
+                localStats.arcadeScore = 0;
+                localStats.continues = 2;
+                localStorage.setItem('gamedleStats', JSON.stringify(localStats));
+                syncStatsToCloud();
+            }
+            
+            gameOver = false;
+            currentGuesses = 0;
+            emojiHistory = [];
+            pastGuesses.clear();
+            knownConsole = null; knownGenre = null; eliminatedConsoles.clear(); eliminatedGenres.clear(); minYear = -Infinity; maxYear = Infinity;
+
+            targetGame = database[Math.floor(Math.random() * database.length)];
+
+            document.getElementById('current-score').innerText = localStats.arcadeScore;
+            document.getElementById('continues-left').innerText = localStats.continues;
+            document.getElementById('high-score').innerText = localStats.highScore;
+
+            document.getElementById('victory-screen').style.display = 'none';
+            document.getElementById('game-over-screen').style.display = 'none';
+            
+            const inputEl = document.getElementById('guess-input');
+            inputEl.disabled = false; inputEl.value = '';
+            document.getElementById('guess-button').disabled = false;
+            document.getElementById('suggestions').style.display = 'none';
+            document.getElementById('guess-grid').innerHTML = `<div class="row header-row"><div>Game</div><div>Console</div><div>Genre</div><div>Year</div></div>`;
+            
+            updateLivesDisplay();
+        }
+
+        // --- FIREBASE LEADERBOARD LOGIC ---
+        function getPeriods() {
+            const now = new Date();
+            const year = now.getUTCFullYear();
+            const month = String(now.getUTCMonth() + 1).padStart(2, '0');
+            const date = String(now.getUTCDate()).padStart(2, '0');
+            
+            const dayStr = `${year}-${month}-${date}`;
+            const monthStr = `${year}-${month}`;
+            
+            // ISO Week calculation
+            const d = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+            const dayNum = d.getUTCDay() || 7;
+            d.setUTCDate(d.getUTCDate() + 4 - dayNum);
+            const yearStart = new Date(Date.UTC(d.getUTCFullYear(),0,1));
+            const weekNo = Math.ceil((((d - yearStart) / 86400000) + 1)/7);
+            const weekStr = `${d.getUTCFullYear()}-W${String(weekNo).padStart(2, '0')}`;
+
+            return { day: dayStr, week: weekStr, month: monthStr };
+        }
+
+        // --- LEADERBOARD LOGIC ---
+        let currentLeaderboardMode = 'single';
+        let currentLeaderboardFilter = 'all';
+
+        function setLeaderboardMode(mode) {
+            currentLeaderboardMode = mode;
+            const btnSingle = document.getElementById('btn-mode-single');
+            const btnCareer = document.getElementById('btn-mode-career');
+            
+            // SubTabs stay visible for both modes now!
+
+            if (mode === 'single') {
+                btnSingle.style.borderColor = '#e2b714'; btnSingle.style.color = '#e2b714';
+                btnCareer.style.borderColor = '#555'; btnCareer.style.color = '#555';
+            } else {
+                btnCareer.style.borderColor = '#538d4e'; btnCareer.style.color = '#538d4e';
+                btnSingle.style.borderColor = '#555'; btnSingle.style.color = '#555';
+            }
+            // Automatically reload the list using the active timeframe tab
+            loadLeaderboard(currentLeaderboardFilter); 
+        }
+
+        function toggleLeaderboard(displayState) {
+            const modal = document.getElementById('leaderboard-modal');
+            modal.style.display = displayState;
+            if (displayState === 'flex') {
+                setLeaderboardMode('single'); // Always default to Single Run when opening
+            }
+        }
+
+        function loadLeaderboard(filter) {
+            const list = document.getElementById('leaderboard-list');
+            const loading = document.getElementById('leaderboard-loading');
+            list.innerHTML = '';
+            loading.style.display = 'block';
+
+            currentLeaderboardFilter = filter;
+            ['all', 'month', 'week', 'day'].forEach(tab => {
+                document.getElementById('tab-' + tab).classList.remove('active');
+            });
+            document.getElementById('tab-' + filter).classList.add('active');
+            
+            const periods = getPeriods();
+
+            // --- CAREER BANK QUERY (Earnings by Timeframe) ---
+            if (currentLeaderboardMode === 'career') {
+                // Determine which cumulative field to query based on the tab
+                let queryField = "lifetimePoints";
+                if (filter === 'month') queryField = `career_${periods.month}`;
+                if (filter === 'week') queryField = `career_${periods.week}`;
+                if (filter === 'day') queryField = `career_${periods.day}`;
+
+                db.collection("users").orderBy(queryField, "desc").limit(25).get().then((querySnapshot) => {
+                    loading.style.display = 'none';
+                    let rankCount = 0;
+
+                    querySnapshot.forEach((doc) => {
+                        const data = doc.data();
+                        rankCount++;
+
+                        const liveTitle = data.equippedTitle || "Insert Coin";
+                        let liveAvatar = data.equippedAvatar || "🕹️";
+                        const displayAvatar = liveAvatar.includes('assets/') ? `<img src="${liveAvatar}" style="width: 20px; height: 20px; image-rendering: pixelated;">` : liveAvatar;
+
+                        const liveBanner = data.equippedBanner || "transparent";
+
+                        const row = document.createElement('div');
+                        row.style.display = 'flex';
+                        row.style.justifyContent = 'space-between';
+                        row.style.alignItems = 'center'; 
+                        row.style.marginBottom = '8px';
+                        if (liveBanner.includes('assets/')) {
+                            row.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${liveBanner}')`;
+                            row.style.backgroundSize = 'cover';
+                            row.style.backgroundPosition = 'center';
+                        } else {
+                            row.style.backgroundColor = liveBanner;
+                        }
+                        row.style.borderRadius = '6px';
+                        row.style.padding = '8px 12px';
+                        row.style.border = liveBanner !== "transparent" ? '1px solid #444' : '1px solid transparent';
+                        row.style.borderBottom = liveBanner === "transparent" ? '1px solid #3a3a3c' : '1px solid #444';
+
+                        let nameColor = "white"; let crown = "";
+                        if (rankCount === 1) { nameColor = "#e2b714"; crown = " 👑"; }
+                        if (rankCount === 2) nameColor = "#c0c0c0";
+                        if (rankCount === 3) nameColor = "#cd7f32";
+
+                        const nameSpan = `
+                            <div style="display: flex; flex-direction: column; line-height: 1.4;">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 16px; display: flex; align-items: center;">${displayAvatar}</span>
+                                    <span style="color: ${nameColor};">${rankCount}. ${data.arcadeTag}${crown}</span>
+                                </div>
+                                <span style="color: #bbb; font-size: 8px; text-transform: uppercase; margin-top: 3px;">${liveTitle}</span>
+                            </div>
+                        `;
+
+                        // Render the specific points for the selected timeframe
+                        const displayScore = data[queryField] || 0;
+                        row.innerHTML = `${nameSpan}<span style="color: ${nameColor}; font-weight: bold; font-size: 14px;">${displayScore}</span>`;
+                        list.appendChild(row);
+                    });
+
+                    if (rankCount === 0) list.innerHTML = "<p>No players have cashed out during this timeframe yet!</p>";
+                }).catch(err => {
+                    loading.innerText = "Error loading career database.";
+                    console.error("Career fetch error:", err);
+                });
+                return; // Stop function
+            }
+
+            // --- SINGLE RUN QUERY (Highest Scores) ---
+            let query = db.collection("leaderboard");
+
+            if (filter === 'all') {
+                query = query.orderBy("score", "desc").limit(25);
+            } else {
+                const prefix = periods[filter];
+                const field = filter + "_score"; 
+                
+                query = query.orderBy(field, "desc")
+                             .startAt(`${prefix}_999999999`)
+                             .endAt(`${prefix}_000000000`)
+                             .limit(100);
+            }
+
+            query.get().then(async (querySnapshot) => {
+                // ... (Keep the rest of the existing Single Run query block exactly the same) ...
+                loading.style.display = 'none';
+                const seenNames = new Set();
+                let rankCount = 0;
+                const MAX_DISPLAY = 10; 
+
+                for (let doc of querySnapshot.docs) {
+                    if (rankCount >= MAX_DISPLAY) break; 
+
+                    const data = doc.data();
+                    const playerName = data.name.toUpperCase();
+
+                    if (!seenNames.has(playerName)) {
+                        seenNames.add(playerName);
+                        rankCount++;
+
+                        let liveTitle = data.title || "Insert Coin"; 
+                        let liveAvatar = "🕹️"; 
+                        let liveBanner = "transparent"; 
+                        
+                        if (data.uid) {
+                            try {
+                                const userDoc = await db.collection("users").doc(data.uid).get();
+                                if (userDoc.exists) {
+                                    const userData = userDoc.data();
+                                    liveTitle = userData.equippedTitle || liveTitle;
+                                    liveAvatar = userData.equippedAvatar || liveAvatar;
+                                    liveBanner = userData.equippedBanner || liveBanner;
+                                }
+                            } catch (err) { console.error("Could not fetch live profile"); }
+                        }
+                        
+                        // NEW CHECK FOR SINGLE RUN LEADERBOARD
+                        const displayAvatar = liveAvatar.includes('assets/') ? `<img src="${liveAvatar}" style="width: 20px; height: 20px; image-rendering: pixelated;">` : liveAvatar;
+
+                        let tooltipParams = ""; let cursorStyle = "default";
+                        if (filter === 'all' && data.timestamp) {
+                            const d = data.timestamp.toDate();
+                            const formattedDate = d.toLocaleDateString("en-US", { year: 'numeric', month: 'short', day: 'numeric' });
+                            tooltipParams = `title="Record set on: ${formattedDate}" onclick="alert('Record set on: ${formattedDate}')"`;
+                            cursorStyle = "pointer";
+                        }
+
+                        const row = document.createElement('div');
+                        row.style.display = 'flex'; row.style.justifyContent = 'space-between';
+                        row.style.alignItems = 'center'; row.style.marginBottom = '8px';
+                        if (liveBanner.includes('assets/')) {
+                            row.style.backgroundImage = `linear-gradient(rgba(0, 0, 0, 0.6), rgba(0, 0, 0, 0.6)), url('${liveBanner}')`;
+                            row.style.backgroundSize = 'cover';
+                            row.style.backgroundPosition = 'center';
+                        } else {
+                            row.style.backgroundColor = liveBanner;
+                        }
+                        row.style.borderRadius = '6px'; row.style.padding = '8px 12px';
+                        row.style.border = liveBanner !== "transparent" ? '1px solid #444' : '1px solid transparent';
+                        row.style.borderBottom = liveBanner === "transparent" ? '1px solid #3a3a3c' : '1px solid #444';
+                        
+                        let nameColor = "white"; let crown = "";
+                        if (rankCount === 1) { nameColor = "#e2b714"; crown = " 👑"; }
+                        if (rankCount === 2) nameColor = "#c0c0c0";
+                        if (rankCount === 3) nameColor = "#cd7f32";
+
+                        const nameSpan = `
+                            <div ${tooltipParams} style="display: flex; flex-direction: column; line-height: 1.4; cursor: ${cursorStyle};">
+                                <div style="display: flex; align-items: center; gap: 8px;">
+                                    <span style="font-size: 16px; display: flex; align-items: center;">${displayAvatar}</span>
+                                    <span style="color: ${nameColor};">${rankCount}. ${data.name}${crown}</span>
+                                </div>
+                                <span style="color: #bbb; font-size: 8px; text-transform: uppercase; margin-top: 3px;">${liveTitle}</span>
+                            </div>
+                        `;
+
+                        row.innerHTML = `${nameSpan}<span style="color: ${nameColor}; font-weight: bold; font-size: 14px;">${data.score}</span>`;
+                        list.appendChild(row);
+                    }
+                }
+                if (rankCount === 0) list.innerHTML = "<p>No scores yet for this time period!</p>";
+            }).catch((error) => {
+                loading.innerText = "Error loading database.";
+                console.error("Error getting documents: ", error);
+            });
+        }
+        function submitToLeaderboard() {
+            if (localStats.arcadeScore <= 0) {
+                alert("You need a score above 0 to enter the Hall of Fame!");
+                return;
+            }
+            
+            // Visual feedback immediately
+            ['win', 'lose'].forEach(state => {
+                const btn = document.getElementById(`btn-submit-${state}`);
+                if(btn) { btn.innerText = "CASHING OUT..."; btn.disabled = true; }
+            });
+
+            const user = firebase.auth().currentUser;
+
+            if (user && !user.isAnonymous) {
+                db.collection("users").doc(user.uid).get().then((doc) => {
+                    if (doc.exists && doc.data().arcadeTag) {
+                        const title = doc.data().equippedTitle || "Insert Coin";
+                        finalizeCashOut(doc.data().arcadeTag, title);
+                    } else {
+                        askForGuestName(); 
+                    }
+                }).catch(() => askForGuestName());
+            } else {
+                askForGuestName();
+            }
+
+            function askForGuestName() {
+                const initials = prompt("Enter your name (10 characters max):", "PLAYER");
+                if (!initials) {
+                    ['win', 'lose'].forEach(state => {
+                        const btn = document.getElementById(`btn-submit-${state}`);
+                        if(btn) { btn.innerText = "Cash Out"; btn.disabled = false; }
+                    });
+                    return; 
+                }
+                finalizeCashOut(initials.substring(0, 10).toUpperCase(), "Guest");
+            }
+
+            function finalizeCashOut(cleanName, playerTitle) {
+                const periods = getPeriods();
+                const paddedScore = localStats.arcadeScore.toString().padStart(9, '0');
+                const pointsToDeposit = localStats.arcadeScore;
+
+                // Tally the successful run securely (forcing 0 if undefined from old saves)
+                localStats.runsCompleted = (localStats.runsCompleted || 0) + 1;
+                localStats.lifetimeBank = (localStats.lifetimeBank || 0) + pointsToDeposit;
+                localStats.challenges.dailyCashouts++; // NEW DAILY TRACKER
+
+                db.collection("leaderboard").add({
+                    name: cleanName,
+                    score: pointsToDeposit,
+                    title: playerTitle,
+                    uid: currentUID,
+                    timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+                    day_score: `${periods.day}_${paddedScore}`,
+                    week_score: `${periods.week}_${paddedScore}`,
+                    month_score: `${periods.month}_${paddedScore}`
+                }).then(() => {
+                    const user = firebase.auth().currentUser;
+                    if (user && !user.isAnonymous) {
+                        // NEW: Update the cumulative career stats for specific timeframes
+                        db.collection("users").doc(user.uid).update({
+                            lifetimePoints: firebase.firestore.FieldValue.increment(pointsToDeposit),
+                            spendableCoins: firebase.firestore.FieldValue.increment(pointsToDeposit),
+                            [`career_${periods.day}`]: firebase.firestore.FieldValue.increment(pointsToDeposit),
+                            [`career_${periods.week}`]: firebase.firestore.FieldValue.increment(pointsToDeposit),
+                            [`career_${periods.month}`]: firebase.firestore.FieldValue.increment(pointsToDeposit)
+                        }).catch(err => console.error("Bank deposit failed:", err));
+                    }
+
+                    window.lastShareScore = pointsToDeposit;
+                    
+                    // Transformation: Button becomes "CASHED OUT" and Share appears natively
+                    ['win', 'lose'].forEach(state => {
+                        // 1. Update the Cash Out button
+                        const btnSubmit = document.getElementById(`btn-submit-${state}`);
+                        if(btnSubmit) {
+                            btnSubmit.innerText = "CASHED OUT ✅";
+                            btnSubmit.style.borderColor = "#538d4e";
+                            btnSubmit.style.color = "#538d4e";
+                            btnSubmit.style.backgroundColor = "transparent";
+                            btnSubmit.disabled = true; // Disables the hover effect from kicking in
+                        }
+                        
+                        // 2. Force the Retry button to become a "New Run"
+                        const btnRetry = document.getElementById(`btn-retry-${state}`);
+                        if(btnRetry) {
+                            btnRetry.innerText = "New Run";
+                            btnRetry.onclick = () => resetGame(true, true); // True/True forces a full reset
+                        }
+                    });
+                    
+                    document.getElementById('btn-share-win').style.display = 'block';
+                    document.getElementById('btn-share-lose').style.display = 'block';
+                    
+                    localStats.arcadeScore = 0;
+                    localStats.continues = 2;
+                    localStorage.setItem('gamedleStats', JSON.stringify(localStats));
+                    syncStatsToCloud();
+                    document.getElementById('current-score').innerText = localStats.arcadeScore;
+                    document.getElementById('continues-left').innerText = localStats.continues;
+                    
+                }).catch((error) => {
+                    console.error("Error writing document: ", error);
+                    alert("Failed to connect to the database. Are your security rules active?");
+                    ['win', 'lose'].forEach(state => {
+                        const btn = document.getElementById(`btn-submit-${state}`);
+                        if(btn) { btn.innerText = "Cash Out"; btn.disabled = false; }
+                    });
+                });
+            }
+        }
+        // ----------------------------------
+
+        function toggleInstructions() {
+            const content = document.getElementById('instructions-content');
+            const btn = document.getElementById('instructions-btn');
+            if (content.style.display === 'none' || content.style.display === '') {
+                content.style.display = 'block'; btn.innerText = '[ - ]';
+            } else { content.style.display = 'none'; btn.innerText = '[ + ]'; }
+        }
+        
+        function toggleModal(displayState) {
+            if (displayState === 'flex') updateStatsUI();
+            document.getElementById('stats-modal').style.display = displayState;
+        }
+
+        function updateLivesDisplay() {
+            const livesRemaining = MAX_GUESSES - currentGuesses;
+            let heartsHTML = '';
+            for (let i = 0; i < MAX_GUESSES; i++) heartsHTML += (i < livesRemaining) ? '❤️' : '🖤';
+            document.getElementById('lives-display').innerHTML = heartsHTML;
+        }
+
+        function makeGuess() {
+            if (gameOver) return;
+            const inputEl = document.getElementById('guess-input');
+            const guessName = inputEl.value;
+            const guessedGame = database.find(g => g.name.toLowerCase() === guessName.toLowerCase());
+            if (!guessedGame) { alert("Game not found in database! Use the dropdown."); return; }
+
+            playSound('guess');
+            currentGuesses++;
+            pastGuesses.add(guessedGame.name);
+            updateLivesDisplay();
+
+            const grid = document.getElementById('guess-grid');
+            const row = document.createElement('div'); row.className = 'row';
+            let currentEmojiRow = "";
+
+            const nameMatch = guessedGame.name === targetGame.name;
+            row.appendChild(createBox(guessedGame.name, nameMatch)); currentEmojiRow += nameMatch ? "🟩" : "⬛";
+
+            const consoleMatch = guessedGame.console === targetGame.console;
+            if (consoleMatch) knownConsole = targetGame.console; else eliminatedConsoles.add(guessedGame.console);
+            row.appendChild(createBox(guessedGame.console, consoleMatch)); currentEmojiRow += consoleMatch ? "🟩" : "⬛";
+
+            const genreMatch = guessedGame.genre === targetGame.genre;
+            if (genreMatch) knownGenre = targetGame.genre; else eliminatedGenres.add(guessedGame.genre);
+            row.appendChild(createBox(guessedGame.genre, genreMatch)); currentEmojiRow += genreMatch ? "🟩" : "⬛";
+
+            let yearText = guessedGame.year;
+            let yearMatch = guessedGame.year === targetGame.year;
+            if (yearMatch) {
+                minYear = targetGame.year; maxYear = targetGame.year; currentEmojiRow += "🟩";
+            } else {
+                const isNewer = guessedGame.year > targetGame.year;
+                yearText += isNewer ? ' ↓' : ' ↑'; currentEmojiRow += isNewer ? "⬇️" : "⬆️";
+                if (isNewer) maxYear = Math.min(maxYear, guessedGame.year - 1);
+                else minYear = Math.max(minYear, guessedGame.year + 1);
+            }
+            row.appendChild(createBox(yearText, yearMatch));
+            
+            emojiHistory.push(currentEmojiRow);
+            grid.appendChild(row);
+            
+            inputEl.value = ''; document.getElementById('suggestions').style.display = 'none';
+
+            if (guessedGame.name === targetGame.name) {
+                handleGameOver(true);
+            } else {
+                // Apply the screen shake to the grid!
+                grid.classList.remove('shake'); 
+                void grid.offsetWidth; // This forces the browser to restart the animation
+                grid.classList.add('shake');
+                
+                if (currentGuesses >= MAX_GUESSES) handleGameOver(false);
+            }
+        }
+
+        function createBox(text, isMatch) {
+            const box = document.createElement('div'); box.className = `box ${isMatch ? 'match' : 'wrong'}`; box.innerText = text; return box;
+        }
+
+        function handleGameOver(isWin) {
+            gameOver = true;
+            document.getElementById('guess-input').disabled = true;
+            document.getElementById('guess-button').disabled = true;
+            localStats.played++;
+            localStats.challenges.played++;
+            
+            // 1. Reset Buttons for a fresh end screen
+            ['win', 'lose'].forEach(state => {
+                const btnSubmit = document.getElementById(`btn-submit-${state}`);
+                if(btnSubmit) {
+                    btnSubmit.innerText = "Cash Out";
+                    btnSubmit.disabled = false;
+                    btnSubmit.style.borderColor = "#e2b714";
+                    btnSubmit.style.color = "#e2b714";
+                }
+                
+                // NEW FIX: Un-stick the Next Round button so it progresses correctly!
+                const btnRetry = document.getElementById(`btn-retry-${state}`);
+                if (btnRetry && state === 'win') {
+                    btnRetry.innerText = "Next Round";
+                    btnRetry.onclick = () => resetGame(true, false);
+                }
+            });
+            document.getElementById('btn-share-win').style.display = 'none';
+            document.getElementById('btn-share-lose').style.display = 'none';
+
+            // 2. Hide "Save Profile" dynamically if they already have an account
+            const user = firebase.auth().currentUser;
+            const isGuest = !user || user.isAnonymous;
+            document.getElementById('btn-save-win').style.display = isGuest ? 'block' : 'none';
+            document.getElementById('btn-save-lose').style.display = isGuest ? 'block' : 'none';
+
+            if (isWin) {
+                // Check for specific challenge criteria
+                if (targetGame.genre === "RPG") localStats.challenges.rpgWins++;
+                if (currentGuesses === 1) localStats.challenges.firstTry++;
+                
+                localStats.wins++;
+                // --- NEW CHALLENGE TRACKING LOGIC ---
+                localStats.challenges.dailyWins++;
+                if (currentGuesses === 1) localStats.careerFirstTry++;
+                
+                const g = targetGame.genre;
+                
+                // 1. FAILSAFE: Build the tracking folders if the save file is too old to have them
+                if (!localStats.careerGenres) localStats.careerGenres = {};
+                if (!localStats.challenges.dailyGenres) localStats.challenges.dailyGenres = {};
+                
+                // 2. FAILSAFE: Make sure the specific genre starts at 0 if it's missing
+                if (localStats.careerGenres[g] === undefined) localStats.careerGenres[g] = 0;
+                if (localStats.challenges.dailyGenres[g] === undefined) localStats.challenges.dailyGenres[g] = 0;
+
+                // 3. Add the points!
+                localStats.careerGenres[g]++;
+                localStats.challenges.dailyGenres[g]++;
+                if (localStats.currentStreak > localStats.challenges.dailyMaxStreak) {
+                    localStats.challenges.dailyMaxStreak = localStats.currentStreak;
+                }
+                // -------------------------------------
+                localStats.currentStreak++;
+                if (localStats.currentStreak > localStats.maxStreak) localStats.maxStreak = localStats.currentStreak;
+                localStats.guessDistribution[currentGuesses - 1]++;
+                
+                const pointsWon = POINTS_DISTRIBUTION[currentGuesses - 1];
+                
+                // --- NEW: Trigger Score Animation ---
+                const oldScore = localStats.arcadeScore;
+                localStats.arcadeScore += pointsWon;
+                animateValue('current-score', oldScore, localStats.arcadeScore, 1200); // Ticks up over 1.2 seconds
+                
+                // Add a cool pulsing effect to the scoreboard while it counts
+                document.getElementById('current-score').classList.add('text-pulse');
+                setTimeout(() => {
+                    document.getElementById('current-score').classList.remove('text-pulse');
+                }, 1200);
+                // ------------------------------------
+                if (localStats.arcadeScore > localStats.highScore) localStats.highScore = localStats.arcadeScore;
+                
+                document.getElementById('victory-points').innerText = `+${pointsWon} POINTS`;
+                document.getElementById('victory-points').style.display = 'block';
+                
+                // Update Victory Status Bar
+                const vicStatus = document.getElementById('victory-status');
+                if(vicStatus) vicStatus.innerHTML = `BANK: <span style="color:#538d4e;">${localStats.arcadeScore}</span> | LIVES: <span style="color:#e2b714;">${localStats.continues}</span>`;
+                
+                playSound('win');
+                document.getElementById('victory-subtext').innerText = `You got it in ${currentGuesses} ${currentGuesses === 1 ? 'try' : 'tries'}!`;
+                
+                document.getElementById('btn-submit-win').style.display = localStats.arcadeScore > 0 ? 'block' : 'none';
+                // --- INCREASED TIMEOUT: Wait 1.5 seconds so the score animation can finish ---
+                setTimeout(() => { document.getElementById('victory-screen').style.display = 'flex'; }, 1500);
+            } else {
+                localStats.currentStreak = 0;
+                document.getElementById('game-over-answer').innerText = targetGame.name;
+
+                if (localStats.continues > 0) {
+                    localStats.continues--;
+                    document.getElementById('game-over-title').innerText = "ROUND FAILED";
+                    
+                    if (localStats.continues === 0) {
+                        document.getElementById('lose-points').innerText = "0 CONTINUES LEFT - ONE MORE FAIL LOSES ALL POINTS!";
+                        document.getElementById('lose-points').style.color = "#e23636"; 
+                    } else {
+                        document.getElementById('lose-points').innerText = `${localStats.continues} CONTINUES REMAINING`;
+                        document.getElementById('lose-points').style.color = "#e2b714";
+                    }
+                    
+                    document.getElementById('lose-points').style.display = 'block';
+                    document.getElementById('btn-retry-lose').innerText = "Continue Round";
+                    document.getElementById('btn-retry-lose').onclick = () => resetGame(true, false); 
+                    document.getElementById('btn-submit-lose').style.display = localStats.arcadeScore > 0 ? 'block' : 'none';
+                    
+                    const loseStatus = document.getElementById('game-over-status');
+                    if(loseStatus) {
+                        loseStatus.innerHTML = `BANK: <span style="color:#538d4e;">${localStats.arcadeScore}</span> | LIVES: <span style="color:#e2b714;">${localStats.continues}</span>`;
+                        loseStatus.style.display = 'block';
+                    }
+                    
+                } else {
+                    // NEW: Total Wipeout counts as a 0 cash out run! Failsafe included.
+                    localStats.runsCompleted = (localStats.runsCompleted || 0) + 1; 
+                    
+                    localStats.arcadeScore = 0;
+                    localStats.continues = 2; 
+                    
+                    document.getElementById('game-over-title').innerText = "GAME OVER";
+                    document.getElementById('lose-points').innerText = "ALL POINTS LOST!";
+                    document.getElementById('lose-points').style.color = "#e23636"; 
+                    document.getElementById('lose-points').style.display = 'block';
+                    
+                    document.getElementById('btn-retry-lose').innerText = "New Run";
+                    document.getElementById('btn-retry-lose').onclick = () => resetGame(true, true); 
+                    document.getElementById('btn-submit-lose').style.display = 'none'; 
+                    
+                    // Show Share Button automatically on a Total Wipeout
+                    document.getElementById('btn-share-lose').style.display = 'block';
+                    
+                    const loseStatus = document.getElementById('game-over-status');
+                    if(loseStatus) loseStatus.style.display = 'none';
+                }
+
+                playSound('lose');
+                setTimeout(() => { document.getElementById('game-over-screen').style.display = 'flex'; }, 800);
+            }
+            
+            localStorage.setItem('gamedleStats', JSON.stringify(localStats));
+            syncStatsToCloud();
+            document.getElementById('continues-left').innerText = localStats.continues;
+            document.getElementById('high-score').innerText = localStats.highScore;
+        }
+        function shareResults() {
+            let shareText = "";
+            const finalScore = window.lastShareScore || localStats.arcadeScore; 
+            
+            // Check if they suffered a total wipeout (0 continues, 0 score, game over)
+            if (localStats.continues === 2 && localStats.arcadeScore === 0 && gameOver && !window.lastShareScore) {
+                shareText = `🕹️ THE GAME GRID 🕹️\n💀 TOTAL WIPEOUT 💀\nBankrupt! I lost it all to the Grid.\n\nCan you survive?\n🔗 https://playgamegrid.io`;
+            } else if (window.lastShareScore) {
+                // They successfully cashed out
+                shareText = `🕹️ THE GAME GRID 🕹️\n✅ CASHOUT SECURED ✅\n💰 Banked: ${finalScore} PTS\n\nCan you beat my score?\n🔗 https://playgamegrid.io`;
+            } else {
+                // Mid-run general share
+                shareText = `🕹️ THE GAME GRID 🕹️\n🔥 Active Bank: ${finalScore} PTS\n❤️ Continues: ${localStats.continues}\n\nCan you beat my high score?\n🔗 https://playgamegrid.io`;
+            }
+
+            // Try modern clipboard API first
+            if (navigator.clipboard && window.isSecureContext) {
+                navigator.clipboard.writeText(shareText).then(() => {
+                    alert("Score copied to clipboard! Paste it to your friends.");
+                }).catch(err => {
+                    fallbackCopyTextToClipboard(shareText);
+                });
+            } else {
+                fallbackCopyTextToClipboard(shareText);
+            }
+        }
+
+function fallbackCopyTextToClipboard(text) {
+    var textArea = document.createElement("textarea");
+    textArea.value = text;
+    
+    // Keep it hidden and prevent scrolling down to it
+    textArea.style.top = "0";
+    textArea.style.left = "0";
+    textArea.style.position = "fixed";
+    textArea.style.opacity = "0";
+
+    document.body.appendChild(textArea);
+    textArea.focus();
+    textArea.select();
+
+    try {
+        var successful = document.execCommand('copy');
+        if(successful) {
+            alert("Score copied to clipboard! Paste it to your friends.");
+        } else {
+            alert("Copy failed. Here is your text:\n\n" + text);
+        }
+    } catch (err) {
+        alert("Copy failed. Here is your text:\n\n" + text);
+    }
+    
+    document.body.removeChild(textArea);
+}
+        function isWinCheck() { return emojiHistory.length > 0 && emojiHistory[emojiHistory.length-1].includes('🟩🟩🟩🟩'); }
+
+        function updateStatsUI() {
+            // Failsafe: if the old save file is missing these, force them to 0
+            localStats.lifetimeBank = localStats.lifetimeBank || 0;
+            localStats.runsCompleted = localStats.runsCompleted || 0;
+
+            document.getElementById('stat-played').innerText = localStats.played;
+            const winPct = localStats.played === 0 ? 0 : Math.round((localStats.wins / localStats.played) * 100);
+            document.getElementById('stat-winpct').innerText = winPct;
+            
+            document.getElementById('stat-streak').innerText = localStats.currentStreak;
+            document.getElementById('stat-maxstreak').innerText = localStats.maxStreak;
+
+            // New Career Bank & Average Cashout logic
+            document.getElementById('stat-career-bank').innerText = localStats.lifetimeBank;
+            const avgCashout = localStats.runsCompleted === 0 ? 0 : Math.round(localStats.lifetimeBank / localStats.runsCompleted);
+            document.getElementById('stat-avg-cashout').innerText = avgCashout;
+
+            const distContainer = document.getElementById('distribution-container');
+            distContainer.innerHTML = ''; 
+            const maxWinsInBucket = Math.max(...localStats.guessDistribution, 1);
+
+            localStats.guessDistribution.forEach((count, index) => {
+                const row = document.createElement('div'); row.className = 'dist-row';
+                const label = document.createElement('div'); label.className = 'dist-label'; label.innerText = index + 1;
+                const barContainer = document.createElement('div'); barContainer.className = 'dist-bar-container';
+                const bar = document.createElement('div'); bar.className = 'dist-bar';
+                const widthPercent = Math.max((count / maxWinsInBucket) * 100, 7);
+                bar.style.width = `${widthPercent}%`; bar.innerText = count;
+
+                if (count > 0) bar.style.backgroundColor = '#565758'; 
+
+                barContainer.appendChild(bar); row.appendChild(label); row.appendChild(barContainer); distContainer.appendChild(row);
+            });
+        }
+
+        // Autocomplete
+        const inputElement = document.getElementById('guess-input');
+        const suggestionsBox = document.getElementById('suggestions');
+        let currentFocus = -1;
+
+        function renderSuggestions() {
+            if (gameOver) return;
+            initAudio(); 
+            const val = inputElement.value; suggestionsBox.innerHTML = '';
+            
+            let validGames = database.filter(g => {
+                if (pastGuesses.has(g.name)) return false;
+                if (knownConsole && g.console !== knownConsole) return false;
+                if (knownGenre && g.genre !== knownGenre) return false;
+                if (eliminatedConsoles.has(g.console)) return false;
+                if (eliminatedGenres.has(g.genre)) return false;
+                if (g.year < minYear || g.year > maxYear) return false;
+                if (val && !g.name.toLowerCase().includes(val.toLowerCase())) return false;
+                return true;
+            });
+            validGames.sort(() => Math.random() - 0.5);
+            const matches = validGames.slice(0, 15);
+            if (matches.length === 0) { suggestionsBox.style.display = 'none'; return; }
+
+            suggestionsBox.style.display = 'block'; currentFocus = -1;
+            matches.forEach((game) => {
+                const div = document.createElement('div'); div.className = 'suggestion-item';
+                div.innerHTML = `<div class="suggestion-name">${game.name}</div><div class="suggestion-meta">${game.console} • ${game.genre} • ${game.year}</div>`;
+                div.addEventListener('click', function() { inputElement.value = game.name; suggestionsBox.style.display = 'none'; inputElement.focus(); });
+                suggestionsBox.appendChild(div);
+            });
+        }
+
+        inputElement.addEventListener('input', renderSuggestions);
+        inputElement.addEventListener('focus', renderSuggestions);
+        document.addEventListener('click', e => { if (e.target !== inputElement && e.target !== suggestionsBox) suggestionsBox.style.display = 'none'; });
+
+        inputElement.addEventListener('keydown', e => {
+            let items = suggestionsBox.getElementsByClassName('suggestion-item');
+            if (e.key === "ArrowDown") { currentFocus++; addActive(items); } 
+            else if (e.key === "ArrowUp") { currentFocus--; addActive(items); } 
+            else if (e.key === "Enter") {
+                e.preventDefault(); 
+                if (currentFocus > -1 && suggestionsBox.style.display === 'block') { if (items.length > 0) items[currentFocus].click(); } 
+                else if (suggestionsBox.style.display === 'block' && items.length > 0 && inputElement.value !== "") { items[0].click(); } 
+                else { makeGuess(); }
+            }
+        });
+
+        function addActive(items) {
+            if (!items || items.length === 0) return;
+            for (let i = 0; i < items.length; i++) items[i].classList.remove("active");
+            if (currentFocus >= items.length) currentFocus = 0;
+            if (currentFocus < 0) currentFocus = items.length - 1;
+            items[currentFocus].classList.add("active");
+            items[currentFocus].scrollIntoView({ block: 'nearest' });
+        }
+        // Force mobile browsers to start at the top of the page
+        window.addEventListener('load', () => {
+            setTimeout(() => window.scrollTo(0, 0), 10);
+        });
+    </script>
+    <div style="width: 100%; position: relative; background-color: #111; z-index: 10; text-align: center; border-top: 1px solid #333; margin-top: auto; padding: 15px 0;">
+        
+        <div style="color: #555; font-size: 10px; font-family: 'Press Start 2P', monospace; margin-bottom: 10px;">ADVERTISEMENT</div>
+        
+        <div style="font-size: 12px; color: #888;">
+            <a href="privacy.html" style="color: #888; text-decoration: none; margin: 0 10px;">Privacy Policy</a> | 
+            <a href="terms.html" style="color: #888; text-decoration: none; margin: 0 10px;">Terms of Service</a> | 
+            <a href="mailto:slizzfire@yahoo.com.com" style="color: #888; text-decoration: none; margin: 0 10px;">Contact</a>
+        </div>
+        <div style="font-size: 10px; color: #555; margin-top: 10px;">
+            &copy; 2026 The Game Grid. All rights reserved.
+        </div>
+    </div>
+</body>
+</html>
