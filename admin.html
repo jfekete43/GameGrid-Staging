@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Game Grid - God Mode</title>
+    <style>
+        body {
+            background-color: #1a1a1a;
+            color: #ffffff;
+            font-family: monospace;
+            padding: 40px;
+        }
+        .panel {
+            background-color: #2a2a2a;
+            border: 2px solid #e2b714;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            max-width: 500px;
+        }
+        input {
+            padding: 10px;
+            width: 70%;
+            background: #111;
+            border: 1px solid #444;
+            color: #fff;
+            margin-right: 10px;
+        }
+        button {
+            padding: 10px 15px;
+            background: #4285F4;
+            color: white;
+            border: none;
+            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .btn-danger {
+            background: #e23636;
+        }
+        h2 { color: #e2b714; margin-top: 0; }
+    </style>
+</head>
+<body>
+
+    <h1>Arcade Admin Panel</h1>
+
+    <!-- Login Section -->
+    <div id="login-section" class="panel">
+        <h2>Authentication Required</h2>
+        <p>You must log in with the Admin account to use these tools.</p>
+        <button id="login-btn">Log In with Google</button>
+    </div>
+
+    <!-- Admin Tools (Hidden until logged in) -->
+    <div id="admin-tools" style="display: none;">
+        
+        <div class="panel">
+            <h2>Ban a Player</h2>
+            <p>Enter the user's UID to permanently ban them.</p>
+            <input type="text" id="ban-uid" placeholder="Paste User UID here...">
+            <button id="ban-btn" class="btn-danger">Ban Player</button>
+            <p id="ban-status" style="color: #e2b714;"></p>
+        </div>
+
+        <div class="panel">
+            <h2>Delete Fake Score</h2>
+            <p>Enter the exact Document ID from the leaderboard collection.</p>
+            <input type="text" id="delete-doc" placeholder="Paste Document ID here...">
+            <button id="delete-btn" class="btn-danger">Delete Score</button>
+            <p id="delete-status" style="color: #e2b714;"></p>
+        </div>
+
+    </div>
+
+    <!-- Firebase Modular Setup -->
+    <script type="module">
+        // 1. Import Firebase tools
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+        import { getFirestore, doc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
+
+        // 2. PASTE YOUR FIREBASE CONFIG HERE
+        const firebaseConfig = {
+            apiKey: "AIzaSyAlHufV0t0VthvCMvQBI1iX6vuicO6HKH8",
+            authDomain: "the-game-grid.firebaseapp.com",
+            projectId: "the-game-grid",
+            storageBucket: "the-game-grid.firebasestorage.app",
+            messagingSenderId: "980286023905",
+            appId: "1:980286023905:web:f0317fd000ad2aa75eefa0"
+        };
+
+        // 3. Initialize Firebase
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+
+        // UI Elements
+        const loginSection = document.getElementById('login-section');
+        const adminTools = document.getElementById('admin-tools');
+        
+        // Handle Login Status
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                loginSection.style.display = 'none';
+                adminTools.style.display = 'block';
+            } else {
+                loginSection.style.display = 'block';
+                adminTools.style.display = 'none';
+            }
+        });
+
+        // Login Button Click
+        document.getElementById('login-btn').addEventListener('click', () => {
+            const provider = new GoogleAuthProvider();
+            signInWithPopup(auth, provider).catch(error => alert("Login Failed: " + error.message));
+        });
+
+        // Ban User Click
+        document.getElementById('ban-btn').addEventListener('click', async () => {
+            const uid = document.getElementById('ban-uid').value.trim();
+            const statusText = document.getElementById('ban-status');
+            if (!uid) return;
+            
+            try {
+                // Creates a document in the banned_users collection
+                await setDoc(doc(db, "banned_users", uid), {
+                    bannedAt: new Date(),
+                    reason: "Admin manual ban"
+                });
+                statusText.innerText = "User " + uid + " successfully banned.";
+                document.getElementById('ban-uid').value = '';
+            } catch (error) {
+                statusText.innerText = "Error: " + error.message;
+            }
+        });
+
+        // Delete Score Click
+        document.getElementById('delete-btn').addEventListener('click', async () => {
+            const docId = document.getElementById('delete-doc').value.trim();
+            const statusText = document.getElementById('delete-status');
+            if (!docId) return;
+
+            try {
+                // Deletes the specific score document from the leaderboard
+                await deleteDoc(doc(db, "leaderboard", docId));
+                statusText.innerText = "Score document " + docId + " deleted.";
+                document.getElementById('delete-doc').value = '';
+            } catch (error) {
+                statusText.innerText = "Error: " + error.message;
+            }
+        });
+    </script>
+</body>
+</html>
